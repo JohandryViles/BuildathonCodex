@@ -24,6 +24,91 @@ function parseApiTime(time: string | undefined, fallbackIso: string): string {
   return Number.isNaN(parsed.getTime()) ? fallbackIso : parsed.toISOString();
 }
 
+export interface MarineTimeline {
+  times: string[];
+  frames: MarinePoint[][];
+}
+
+interface OpenMeteoHourly {
+  time?: string[];
+  wave_height?: (number | null)[];
+  sea_surface_temperature?: (number | null)[];
+}
+
+interface OpenMeteoLocationHourly {
+  hourly?: OpenMeteoHourly;
+}
+
+const TIMELINE_WINDOW = 24;
+
+export async function fetchMarineTimeline(): Promise<MarineTimeline> {
+  const nowIso = new Date().toISOString();
+  const latitudes = MARINE_STATIONS.map((s) => s.coordinates[1]).join(",");
+  const longitudes = MARINE_STATIONS.map((s) => s.coordinates[0]).join(",");
+  const url =
+    `${MARINE_API_URL}?latitude=${latitudes}&longitude=${longitudes}` +
+    `&hourly=wave_height,sea_surface_temperature&past_days=1&forecast_days=1`;
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Open-Meteo respondio ${response.status}`);
+  }
+
+  const payload = (await response.json()) as
+    | OpenMeteoLocationHourly
+    | OpenMeteoLocationHourly[];
+  const locations = Array.isArray(payload) ? payload : [payload];
+
+  const referenceTimes = locations[0]?.hourly?.time;
+  if (!referenceTimes || referenceTimes.length === 0) {
+    throw new Error("Open-Meteo no devolvio serie horaria");
+  }
+
+  const nowMs = Date.now();
+  let nowIndex = 0;
+  let bestDelta = Infinity;
+  referenceTimes.forEach((time, index) => {
+    const ms = new Date(parseApiTime(time, nowIso)).getTime();
+    const delta = Math.abs(ms - nowMs);
+    if (delta < bestDelta) {
+      bestDelta = delta;
+      nowIndex = index;
+    }
+  });
+
+  const end = Math.min(referenceTimes.length - 1, nowIndex);
+  const start = Math.max(0, end - (TIMELINE_WINDOW - 1));
+
+  const times: string[] = [];
+  const frames: MarinePoint[][] = [];
+
+  for (let index = start; index <= end; index += 1) {
+    const frameIso = parseApiTime(referenceTimes[index], nowIso);
+    times.push(frameIso);
+
+    frames.push(
+      MARINE_STATIONS.map((station, stationIndex) => {
+        const hourly = locations[stationIndex]?.hourly;
+        const seaTemperatureC =
+          hourly?.sea_surface_temperature?.[index] ?? station.fallbackTemperatureC;
+        const waveHeightM =
+          hourly?.wave_height?.[index] ?? station.fallbackWaveHeightM;
+
+        return {
+          id: station.id,
+          stationName: station.stationName,
+          coordinates: station.coordinates,
+          seaTemperatureC,
+          waveHeightM,
+          updatedAt: frameIso,
+        };
+      }),
+    );
+  }
+
+  return { times, frames };
+}
+
 export interface MarineConditions {
   seaTemperatureC: number | null;
   waveHeightM: number | null;
@@ -37,21 +122,60 @@ interface OpenMeteoPointCurrent extends OpenMeteoCurrent {
   wave_direction?: number | null;
 }
 
+interface OpenMeteoPointHourly {
+  time?: string[];
+  wave_height?: (number | null)[];
+  sea_surface_temperature?: (number | null)[];
+  wave_period?: (number | null)[];
+  wave_direction?: (number | null)[];
+}
+
 export async function fetchMarineConditions(
   lng: number,
   lat: number,
+  targetTimeMs?: number,
 ): Promise<MarineConditions> {
   const nowIso = new Date().toISOString();
+  const targetMs = targetTimeMs ?? Date.now();
   const url =
     `${MARINE_API_URL}?latitude=${lat.toFixed(4)}&longitude=${lng.toFixed(4)}` +
-    `&current=wave_height,sea_surface_temperature,wave_period,wave_direction`;
+    `&hourly=wave_height,sea_surface_temperature,wave_period,wave_direction` +
+    `&past_days=1&forecast_days=1`;
 
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Open-Meteo respondio ${response.status}`);
   }
 
-  const payload = (await response.json()) as { current?: OpenMeteoPointCurrent };
+  const payload = (await response.json()) as {
+    hourly?: OpenMeteoPointHourly;
+    current?: OpenMeteoPointCurrent;
+  };
+  const hourly = payload.hourly;
+  const times = hourly?.time ?? [];
+
+  if (times.length > 0) {
+    let selectedIndex = 0;
+    let bestDelta = Number.POSITIVE_INFINITY;
+
+    times.forEach((time, index) => {
+      const ms = new Date(parseApiTime(time, nowIso)).getTime();
+      const delta = Math.abs(ms - targetMs);
+      if (delta < bestDelta) {
+        bestDelta = delta;
+        selectedIndex = index;
+      }
+    });
+
+    return {
+      seaTemperatureC: hourly?.sea_surface_temperature?.[selectedIndex] ?? null,
+      waveHeightM: hourly?.wave_height?.[selectedIndex] ?? null,
+      wavePeriodS: hourly?.wave_period?.[selectedIndex] ?? null,
+      waveDirectionDeg: hourly?.wave_direction?.[selectedIndex] ?? null,
+      updatedAt: parseApiTime(times[selectedIndex], nowIso),
+    };
+  }
+
   const current = payload.current;
 
   return {

@@ -43,6 +43,7 @@ interface MapViewProps {
   selectedPointId: string | null;
   filter: AlertFilter;
   onPointSelect: (pointId: string) => void;
+  fieldTimeMs: number;
 }
 
 function getBoundsFromRadius(
@@ -115,8 +116,13 @@ function getMarineFieldCell(
   const waveBand = Math.sin(lng * 0.11 + lat * 0.07 + time * 0.9);
   const swellPulse = Math.sin(lng * 0.04 - lat * 0.08 - time * 1.35);
 
+  const date = new Date(timestampMs);
+  const utcHour = date.getUTCHours() + date.getUTCMinutes() / 60;
+  const localHour = ((utcHour + lng / 15) % 24 + 24) % 24;
+  const diurnal = Math.cos(((localHour - 15) / 24) * Math.PI * 2);
+
   const seaTemperatureC = clamp(
-    14 + equatorHeat * 14 + Math.sin(lng * 0.05 + time * 0.2) * 2.6,
+    14 + equatorHeat * 14 + diurnal * 3.2,
     10,
     34,
   );
@@ -194,13 +200,18 @@ export function MapView({
   selectedPointId,
   filter,
   onPointSelect,
+  fieldTimeMs,
 }: MapViewProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<Map | null>(null);
   const flowCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const onPointSelectRef = useRef(onPointSelect);
+  const alertsRef = useRef(alerts);
+  const fieldTimeRef = useRef(fieldTimeMs);
   const waveAnimationFrameRef = useRef<number | null>(null);
-  const globalFieldIntervalRef = useRef<number | null>(null);
+
+  alertsRef.current = alerts;
+  fieldTimeRef.current = fieldTimeMs;
   const [mapReady, setMapReady] = useState(false);
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [showTemperature, setShowTemperature] = useState(true);
@@ -256,7 +267,7 @@ export function MapView({
 
       map.addSource(GLOBAL_FIELD_SOURCE_ID, {
         type: "geojson",
-        data: createGlobalMarineField(Date.now()),
+        data: createGlobalMarineField(fieldTimeRef.current),
       });
 
       map.addLayer(
@@ -413,16 +424,6 @@ export function MapView({
 
       waveAnimationFrameRef.current = requestAnimationFrame(animateWave);
 
-      globalFieldIntervalRef.current = window.setInterval(() => {
-        const source = map.getSource(GLOBAL_FIELD_SOURCE_ID) as
-          | maplibregl.GeoJSONSource
-          | undefined;
-        if (!source) {
-          return;
-        }
-        source.setData(createGlobalMarineField(Date.now()));
-      }, 900);
-
       map.on("click", LAYER_ID, (event) => {
         const feature = event.features?.[0];
 
@@ -497,7 +498,7 @@ export function MapView({
             `Lat ${lngLat.lat.toFixed(2)}, Lng ${lngLat.lng.toFixed(2)}`,
         );
 
-        fetchMarineConditions(lngLat.lng, lngLat.lat)
+        fetchMarineConditions(lngLat.lng, lngLat.lat, fieldTimeRef.current)
           .then((conditions) => {
             if (
               conditions.waveHeightM === null &&
@@ -555,15 +556,27 @@ export function MapView({
         cancelAnimationFrame(waveAnimationFrameRef.current);
         waveAnimationFrameRef.current = null;
       }
-      if (globalFieldIntervalRef.current !== null) {
-        window.clearInterval(globalFieldIntervalRef.current);
-        globalFieldIntervalRef.current = null;
-      }
       map.remove();
       mapRef.current = null;
       setMapReady(false);
     };
   }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!mapReady || !map) {
+      return;
+    }
+
+    const source = map.getSource(GLOBAL_FIELD_SOURCE_ID) as
+      | maplibregl.GeoJSONSource
+      | undefined;
+    if (!source) {
+      return;
+    }
+
+    source.setData(createGlobalMarineField(fieldTimeMs));
+  }, [mapReady, fieldTimeMs]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -788,7 +801,9 @@ export function MapView({
       return;
     }
 
-    const selected = alerts.find((alert) => alert.pointId === selectedPointId);
+    const selected = alertsRef.current.find(
+      (alert) => alert.pointId === selectedPointId,
+    );
     if (!selected) {
       return;
     }
@@ -798,7 +813,7 @@ export function MapView({
       zoom: Math.max(map.getZoom(), 6.5),
       essential: true,
     });
-  }, [alerts, selectedPointId]);
+  }, [selectedPointId]);
 
   return (
     <div className="map-wrapper">
@@ -857,24 +872,38 @@ export function MapView({
               />
               Estaciones y alertas
             </label>
-
-            <div className="overlay-ranges">
-              <div>
-                <strong>Temperatura (C)</strong>
-                <small>
-                  Baja &lt;= {TEMPERATURE_THRESHOLDS.lowWarning} | Alta &gt;= {TEMPERATURE_THRESHOLDS.highWarning} | Anomala &gt;= {TEMPERATURE_THRESHOLDS.highDanger}
-                </small>
-              </div>
-              <div>
-                <strong>Oleaje (m)</strong>
-                <small>
-                  Vig. &gt;= {WAVE_THRESHOLDS.watch} | Alerta &gt;= {WAVE_THRESHOLDS.warning} | Peligro &gt;= {WAVE_THRESHOLDS.danger}
-                </small>
-              </div>
-            </div>
           </div>
         )}
       </section>
+      <aside className="map-scale-legend" aria-label="Rangos informativos de mar">
+        <span className="legend-title">Temp (C):</span>
+        <span className="legend-chip">
+          <span className="legend-dot temp-low" aria-hidden="true" />
+          <small>&lt;= {TEMPERATURE_THRESHOLDS.lowWarning}</small>
+        </span>
+        <span className="legend-chip">
+          <span className="legend-dot temp-high" aria-hidden="true" />
+          <small>&gt;= {TEMPERATURE_THRESHOLDS.highWarning}</small>
+        </span>
+        <span className="legend-chip">
+          <span className="legend-dot temp-anomaly" aria-hidden="true" />
+          <small>&gt;= {TEMPERATURE_THRESHOLDS.highDanger}</small>
+        </span>
+        <span className="legend-sep" aria-hidden="true">|</span>
+        <span className="legend-title">Oleaje (m):</span>
+        <span className="legend-chip">
+          <span className="legend-dot wave-watch" aria-hidden="true" />
+          <small>&gt;= {WAVE_THRESHOLDS.watch}</small>
+        </span>
+        <span className="legend-chip">
+          <span className="legend-dot wave-warning" aria-hidden="true" />
+          <small>&gt;= {WAVE_THRESHOLDS.warning}</small>
+        </span>
+        <span className="legend-chip">
+          <span className="legend-dot wave-danger" aria-hidden="true" />
+          <small>&gt;= {WAVE_THRESHOLDS.danger}</small>
+        </span>
+      </aside>
     </div>
   );
 }
