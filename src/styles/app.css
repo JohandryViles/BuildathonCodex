@@ -136,6 +136,32 @@ button {
 .leisure-tile button { background: #55e4d6; }
 .experience-tile button span { margin-left: .5rem; font-size: 1rem; }
 
+.solutions-section, .how-it-works-section {
+  padding: 6rem 5.5vw;
+}
+
+.solutions-section { color: #082c43; background: #f2f3ed; scroll-margin-top: 1rem; }
+.section-heading { max-width: 625px; }
+.section-heading .eyebrow { color: #137c83; }
+.section-heading h2 { margin: 0; font-size: clamp(2.3rem, 4.4vw, 4.5rem); line-height: .96; }
+.section-heading > p:last-child { margin: 1.25rem 0 0; color: #48616d; font: .95rem/1.65 Inter, sans-serif; }
+.solution-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; margin-top: 3.6rem; }
+.solution-grid article { min-height: 235px; padding: 1.55rem; border: 1px solid #d3ddd9; background: #fafbf7; }
+.solution-number { color: #1a9894; font: 700 .68rem Inter, sans-serif; letter-spacing: .12em; }
+.solution-grid h3, .steps-list h3 { margin: 3.8rem 0 .65rem; font-size: 1.48rem; line-height: 1; }
+.solution-grid p, .steps-list p { margin: 0; color: #55707b; font: .78rem/1.6 Inter, sans-serif; }
+
+.how-it-works-section { color: #ecf8f6; background: linear-gradient(125deg, #06253d, #08465a); }
+.how-it-works-section .section-heading .eyebrow { color: #66ddd6; }
+.steps-list { max-width: 900px; margin: 3.4rem 0 2rem; padding: 0; list-style: none; border-top: 1px solid rgba(183, 231, 228, .25); }
+.steps-list li { display: grid; grid-template-columns: 80px 1fr; gap: 1.2rem; padding: 1.25rem 0; border-bottom: 1px solid rgba(183, 231, 228, .25); }
+.steps-list li > span { color: #69e0d7; font: 1.1rem Georgia, serif; }
+.steps-list h3 { margin: 0 0 .35rem; font-size: 1.35rem; }
+.steps-list p { color: #bdd9d7; }
+.how-it-works-cta { padding: .85rem 1.15rem; border: 1px solid #64ded5; color: #062c40; background: #64ded5; cursor: pointer; font: 700 .7rem Inter, sans-serif; letter-spacing: .05em; text-transform: uppercase; transition: transform .2s ease; }
+.how-it-works-cta:hover { transform: translateY(-2px); }
+.how-it-works-cta span { margin-left: .5rem; font-size: 1rem; }
+
 .landing-footer { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 3rem; padding: 2.8rem 5.5vw; background: #06213a; font-family: Inter, sans-serif; }
 .footer-brand { color: #f3f8f6; margin-bottom: .8rem; }
 .landing-footer p { max-width: 300px; margin: 0; color: #9db5bf; font-size: .72rem; line-height: 1.55; }
@@ -570,6 +596,7 @@ button {
   .experience-card { margin: 1.4rem; align-self: center; }
   .tile-content { padding: 2.2rem 1.4rem; }
   .landing-footer { padding: 2.3rem 1.4rem; }
+  .solutions-section, .how-it-works-section { padding: 4rem 1.4rem; }
   .content-layout {
     grid-template-columns: 1fr;
     height: auto;
@@ -603,4 +630,8 @@ button {
   .experience-card { order: -1; margin: 0; padding: 2rem 1.4rem; border-radius: 0; box-shadow: none; }
   .experience-tile { min-height: 330px; }
   .landing-footer { grid-template-columns: 1fr; gap: 1.7rem; }
+  .solution-grid { grid-template-columns: 1fr; margin-top: 2.3rem; }
+  .solution-grid article { min-height: 200px; }
+  .solution-grid h3 { margin-top: 2.5rem; }
+  .steps-list li { grid-template-columns: 40px 1fr; }
 }

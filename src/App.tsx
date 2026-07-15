@@ -50,14 +50,13 @@ function LandingPage() {
         <div className="nav-links">
           <a href="#soluciones">Soluciones</a>
           <a href="#como-funciona">Cómo funciona</a>
-          <a href="#nosotros">Nosotros</a>
         </div>
         <button className="nav-access" onClick={() => navigate("/monitoreo")}>
           Acceder al mapa <span>→</span>
         </button>
       </nav>
 
-      <section className="landing-hero" id="soluciones">
+      <section className="landing-hero">
         <div className="hero-intro">
           <p className="eyebrow">INTELIGENCIA PARA EL OCÉANO</p>
           <h1>El mar cambia.<br />Tus decisiones, no.</h1>
@@ -90,19 +89,66 @@ function LandingPage() {
         </article>
       </section>
 
-      <section className="landing-footer" id="nosotros">
+      <section className="solutions-section" id="soluciones">
+        <div className="section-heading">
+          <p className="eyebrow">SOLUCIONES</p>
+          <h2>Informaci&oacute;n del mar<br />para decidir a tiempo.</h2>
+          <p>Centralizamos las condiciones que importan para que cada salida sea m&aacute;s segura, eficiente y previsible.</p>
+        </div>
+        <div className="solution-grid">
+          <article>
+            <span className="solution-number">01</span>
+            <h3>Condiciones del mar</h3>
+            <p>Consulta oleaje, temperatura superficial, corrientes y mareas en una misma vista del litoral.</p>
+          </article>
+          <article>
+            <span className="solution-number">02</span>
+            <h3>Alertas relevantes</h3>
+            <p>Identifica cambios de riesgo y prioriza los puntos que necesitan atenci&oacute;n antes de zarpar.</p>
+          </article>
+          <article>
+            <span className="solution-number">03</span>
+            <h3>Seguimiento horario</h3>
+            <p>Revisa la evoluci&oacute;n de las condiciones durante el d&iacute;a y planifica mejor cada jornada.</p>
+          </article>
+        </div>
+      </section>
+
+      <section className="how-it-works-section" id="como-funciona">
+        <div className="section-heading">
+          <p className="eyebrow">C&Oacute;MO FUNCIONA</p>
+          <h2>Del dato a la decisi&oacute;n,<br />en tres pasos.</h2>
+        </div>
+        <ol className="steps-list">
+          <li>
+            <span>1</span>
+            <div><h3>Abre el monitoreo</h3><p>Entra al mapa y elige el momento que quieres analizar.</p></div>
+          </li>
+          <li>
+            <span>2</span>
+            <div><h3>Lee las condiciones</h3><p>Visualiza estaciones, variables marinas y alertas activas sobre el mapa.</p></div>
+          </li>
+          <li>
+            <span>3</span>
+            <div><h3>Planifica con confianza</h3><p>Usa esta informaci&oacute;n para preparar tu ruta, faena o salida al mar.</p></div>
+          </li>
+        </ol>
+        <button className="how-it-works-cta" onClick={() => navigate("/monitoreo")}>Explorar el monitoreo <span>&rarr;</span></button>
+      </section>
+
+      <section className="landing-footer">
         <div>
           <div className="footer-brand"><BrandMark /> Marea IA</div>
           <p>Inteligencia marina para una relación más segura, consciente y sostenible con el océano.</p>
         </div>
-        <div id="como-funciona">
+        <div>
           <strong>PLATAFORMA</strong>
           <a href="#soluciones">Monitoreo marítimo</a>
           <a href="#soluciones">Información costera</a>
         </div>
         <div>
           <strong>CONTACTO</strong>
-          <a href="mailto:hola@mareaia.com">hola@mareaia.com</a>
+          <a href="mailto:mareaia@gmail.com">hola@mareaia.com</a>
           <span>© 2026 Marea IA</span>
         </div>
       </section>
