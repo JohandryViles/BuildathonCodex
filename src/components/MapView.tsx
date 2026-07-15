@@ -5,6 +5,7 @@ import type { FeatureCollection, Point, Polygon } from "geojson";
 import type { AlertFilter, MarineAlert, RouteRecommendation } from "../types/marine";
 import { TEMPERATURE_THRESHOLDS, WAVE_THRESHOLDS, evaluateMarinePoint } from "../domain/alerts";
 import { fetchMarineConditions } from "../data/openMeteo";
+import { beachFlagLabel, getBeachFlag } from "../domain/tourismAdvisories";
 
 const SOURCE_ID = "marine-alerts-source";
 const ROUTE_SOURCE_ID = "tourism-routes-source";
@@ -190,6 +191,7 @@ function toGeoJson(alerts: MarineAlert[]): FeatureCollection<Point> {
         seaTemperatureC: alert.seaTemperatureC,
         waveHeightM: alert.waveHeightM,
         updatedAt: alert.updatedAt,
+        beachStatus: beachFlagLabel(getBeachFlag(alert)),
       },
     })),
   };
@@ -244,9 +246,9 @@ export function MapView({
   const [mapReady, setMapReady] = useState(false);
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [showRoutes, setShowRoutes] = useState(true);
-  const [showTemperature, setShowTemperature] = useState(true);
-  const [showWave, setShowWave] = useState(true);
-  const [showFlow, setShowFlow] = useState(true);
+  const [showTemperature, setShowTemperature] = useState(false);
+  const [showWave, setShowWave] = useState(false);
+  const [showFlow, setShowFlow] = useState(false);
   const [showStations, setShowStations] = useState(true);
 
   onPointSelectRef.current = onPointSelect;
@@ -265,10 +267,10 @@ export function MapView({
 
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
-      style: "https://demotiles.maplibre.org/style.json",
-      center: [-80.75, -0.98],
-      zoom: 11,
-      minZoom: 8,
+      style: "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json",
+      center: [-80.735, -0.965],
+      zoom: 12.4,
+      minZoom: 9,
     });
 
     map.addControl(new maplibregl.NavigationControl({ showCompass: true }), "top-right");
@@ -296,9 +298,7 @@ export function MapView({
     });
 
     map.on("load", () => {
-      const layerAnchorId = map.getLayer("countries-boundary")
-        ? "countries-boundary"
-        : undefined;
+      const layerAnchorId = map.getStyle().layers.find((layer) => layer.type === "symbol")?.id;
 
       map.addSource(GLOBAL_FIELD_SOURCE_ID, {
         type: "geojson",
@@ -527,6 +527,7 @@ export function MapView({
         const message = String(feature.properties?.message ?? "Sin datos");
         const temperature = Number(feature.properties?.seaTemperatureC ?? 0);
         const waveHeight = Number(feature.properties?.waveHeightM ?? 0);
+        const beachStatus = String(feature.properties?.beachStatus ?? "");
 
         if (pointId) {
           onPointSelectRef.current(pointId);
@@ -537,6 +538,7 @@ export function MapView({
           .setHTML(
             `<strong>${stationName}</strong><br/>` +
               `${message}<br/>` +
+              `${beachStatus ? `<strong>${beachStatus}</strong><br/>` : ""}` +
               `Temp: ${temperature.toFixed(1)} C<br/>` +
               `Oleaje: ${waveHeight.toFixed(1)} m`,
           )

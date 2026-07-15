@@ -7,10 +7,12 @@ import type {
 } from "../types/marine";
 import { tourismAdvice } from "../domain/tourismAdvisories";
 import { TouristAssistant } from "./TouristAssistant";
+import { BeachSafety } from "./BeachSafety";
 
 interface TourismPanelProps {
   recommendations: RouteRecommendation[];
   alerts: MarineAlert[];
+  allAlerts: MarineAlert[];
   selectedRouteId: string | null;
   selectedPointId: string | null;
   filter: AlertFilter;
@@ -43,6 +45,7 @@ function levelLabel(level: MarineAlert["level"]) {
 export function TourismPanel({
   recommendations,
   alerts,
+  allAlerts,
   selectedRouteId,
   selectedPointId,
   filter,
@@ -61,6 +64,12 @@ export function TourismPanel({
       </header>
 
       <TouristAssistant recommendations={recommendations} onSelectRoute={onSelectRoute} />
+
+      <BeachSafety
+        alerts={allAlerts}
+        selectedPointId={selectedPointId}
+        onSelectBeach={onSelectAlert}
+      />
 
       {mainRecommendation && (
         <button

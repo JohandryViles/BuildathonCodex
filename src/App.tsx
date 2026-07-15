@@ -147,6 +147,7 @@ export default function App() {
         <TourismPanel
           recommendations={recommendations}
           alerts={filteredAlerts}
+          allAlerts={alerts}
           selectedRouteId={selectedRouteId}
           selectedPointId={selectedPointId}
           filter={filter}
