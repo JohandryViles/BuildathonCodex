@@ -241,6 +241,149 @@ button,
   gap: 1rem;
 }
 
+.planner-conversation {
+  background: linear-gradient(135deg,#e9faf7,#fff7ea);
+  border: 1px solid #c5e5df;
+  border-radius: 1.2rem;
+  padding: 1.25rem;
+}
+
+.planner-conversation.welcome {
+  align-items: center;
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: minmax(260px,.75fr) minmax(420px,1.25fr);
+  margin: 1rem auto;
+  max-width: 1120px;
+  min-height: 350px;
+  padding: clamp(1.5rem,4vw,3.5rem);
+  width: 100%;
+}
+
+.planner-intro > span,
+.plan-summary span {
+  color: #e16c36;
+  font-size: .72rem;
+  font-weight: 900;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.planner-intro h2 {
+  color: #173f3d;
+  font-size: clamp(2rem,3.5vw,3.2rem);
+  letter-spacing: -.04em;
+  line-height: 1.03;
+  margin: .55rem 0 1rem;
+}
+
+.planner-intro p {
+  color: #587573;
+  line-height: 1.65;
+  margin: 0;
+}
+
+.planner-conversation .tourist-assistant {
+  background: #fff;
+  box-shadow: 0 18px 45px rgba(37,105,100,.12);
+  margin: 0;
+}
+
+.planner-conversation.compact {
+  padding: .8rem;
+}
+
+.planner-conversation.compact .tourist-assistant {
+  align-items: center;
+  display: grid;
+  gap: .8rem;
+  grid-template-columns: minmax(220px,.55fr) minmax(360px,1.45fr);
+}
+
+.planner-conversation.compact .assistant-title { margin: 0; }
+.planner-conversation.compact .quick-preferences,
+.planner-conversation.compact .assistant-examples { display: none; }
+.planner-conversation.compact .tourist-assistant form { margin: 0; }
+
+.plan-summary {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #d4e7e3;
+  border-radius: .9rem;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: .75rem 1rem;
+}
+
+.plan-summary strong { color: #173f3d; display: block; margin-top: .18rem; }
+.plan-summary p { color: #587573; font-size: .82rem; margin: 0; max-width: 480px; text-align: right; }
+
+.content-layout.planned {
+  grid-template-columns: minmax(330px,380px) minmax(0,1fr);
+  height: max(560px,calc(100vh - 25rem));
+}
+
+.results-panel {
+  overflow: hidden;
+}
+
+.results-tabs {
+  background: #edf7f5;
+  border-radius: .7rem;
+  display: grid;
+  gap: .2rem;
+  grid-template-columns: 1.35fr .75fr .7fr;
+  margin-bottom: .75rem;
+  padding: .25rem;
+}
+
+.results-tabs button {
+  background: transparent;
+  border: 0;
+  border-radius: .52rem;
+  color: #567572;
+  cursor: pointer;
+  font-size: .72rem;
+  font-weight: 800;
+  min-height: 36px;
+  padding: .35rem;
+}
+
+.results-tabs button.active {
+  background: #fff;
+  box-shadow: 0 3px 12px rgba(37,105,100,.1);
+  color: #137f77;
+}
+
+.tab-content {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-color: #42b9ad #edf7f5;
+  scrollbar-width: thin;
+}
+
+.routes-tab {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.results-panel .route-list {
+  max-height: none;
+  overflow-y: auto;
+}
+
+.results-panel .marine-compact {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.beaches-tab .beach-safety { border: 0; margin: 0; padding: 0; }
+.beaches-tab .beach-status-list { flex-direction: column; overflow: visible; }
+.beaches-tab .beach-status-list > button { flex-basis: auto; width: 100%; }
+
 .alert-panel,
 .tourism-panel {
   background: rgba(15, 23, 42, 0.9);
@@ -975,6 +1118,11 @@ button,
     height: auto;
   }
 
+  .planner-conversation.welcome { grid-template-columns: 1fr; }
+  .planner-conversation.compact .tourist-assistant { grid-template-columns: 1fr; }
+  .content-layout.planned { height: auto; }
+  .results-panel { max-height: 620px; }
+
   .tourism-panel {
     max-height: none;
   }
@@ -1021,6 +1169,12 @@ button,
   .tourist-assistant form {
     grid-template-columns: 1fr;
   }
+
+  .planner-conversation.welcome { min-height: 0; padding: 1.2rem; }
+  .planner-intro h2 { font-size: 2rem; }
+  .plan-summary { align-items: flex-start; flex-direction: column; }
+  .plan-summary p { text-align: left; }
+  .results-panel { max-height: 570px; }
 
   .map-place-search {
     left: .55rem;

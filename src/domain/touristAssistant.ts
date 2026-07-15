@@ -26,6 +26,16 @@ const intentPatterns: { tag: TourismTag; words: string[] }[] = [
   { tag: "accessible", words: ["accesible", "silla de ruedas", "movilidad", "adulto mayor"] },
 ];
 
+const EXPERIENCE_TAGS = new Set<TourismTag>([
+  "beach",
+  "park",
+  "food",
+  "shopping",
+  "nightlife",
+  "culture",
+  "nature",
+]);
+
 function normalize(value: string) {
   return value
     .normalize("NFD")
@@ -56,10 +66,14 @@ export function getPersonalizedRecommendations(
     .map((recommendation) => {
       const { route } = recommendation;
       const matchedTags = intent.tags.filter((tag) => route.tags.includes(tag));
+      const requestedExperiences = intent.tags.filter((tag) => EXPERIENCE_TAGS.has(tag));
+      const matchedExperiences = requestedExperiences.filter((tag) => route.tags.includes(tag));
       const overBudget = intent.maxBudget !== undefined && route.estimatedCostUsd > intent.maxBudget;
       const affordable = route.estimatedCostUsd <= (intent.maxBudget ?? 12);
       const matchScore =
         matchedTags.length * 25 +
+        matchedExperiences.length * 55 +
+        (requestedExperiences.length > 0 && matchedExperiences.length === 0 ? -45 : 0) +
         (affordable ? 15 : -35) +
         (route.demand === "low" && intent.tags.includes("quiet") ? 24 : 0) +
         (recommendation.status === "recommended" ? 18 : -8) +

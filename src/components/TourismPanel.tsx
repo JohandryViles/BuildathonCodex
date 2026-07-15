@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type {
   AlertFilter,
   DemandLevel,
@@ -6,7 +7,6 @@ import type {
   RouteRecommendation,
 } from "../types/marine";
 import { tourismAdvice } from "../domain/tourismAdvisories";
-import { TouristAssistant } from "./TouristAssistant";
 import { BeachSafety } from "./BeachSafety";
 
 interface TourismPanelProps {
@@ -19,7 +19,6 @@ interface TourismPanelProps {
   onFilterChange: (filter: AlertFilter) => void;
   onSelectRoute: (routeId: string) => void;
   onSelectAlert: (pointId: string) => void;
-  initialRequest?: string;
 }
 
 const FILTER_OPTIONS: AlertFilter[] = ["all", "watch", "warning", "danger"];
@@ -53,68 +52,59 @@ export function TourismPanel({
   onFilterChange,
   onSelectRoute,
   onSelectAlert,
-  initialRequest,
 }: TourismPanelProps) {
   const mainRecommendation = recommendations[0];
+  const [activeTab, setActiveTab] = useState<"routes" | "beaches" | "alerts">("routes");
 
   return (
-    <aside className="tourism-panel">
+    <aside className="tourism-panel results-panel">
       <header className="panel-header">
-        <span className="eyebrow">Turismo accesible</span>
-        <h2>Rutas recomendadas</h2>
-        <p>La app prioriza accesibilidad, baja saturacion e impacto local.</p>
+        <span className="eyebrow">Tu plan personalizado</span>
+        <h2>Lo mejor para ti</h2>
+        <p>{recommendations.length} opciones ordenadas según lo que nos contaste.</p>
       </header>
 
-      <TouristAssistant recommendations={recommendations} onSelectRoute={onSelectRoute} initialRequest={initialRequest} />
+      <nav className="results-tabs" aria-label="Información del plan">
+        <button type="button" className={activeTab === "routes" ? "active" : ""} onClick={() => setActiveTab("routes")}>Recomendaciones</button>
+        <button type="button" className={activeTab === "beaches" ? "active" : ""} onClick={() => setActiveTab("beaches")}>Playas</button>
+        <button type="button" className={activeTab === "alerts" ? "active" : ""} onClick={() => setActiveTab("alerts")}>Alertas</button>
+      </nav>
 
-      <BeachSafety
-        alerts={allAlerts}
-        selectedPointId={selectedPointId}
-        onSelectBeach={onSelectAlert}
-      />
-
-      {mainRecommendation && (
-        <button
-          type="button"
-          className="featured-route"
-          onClick={() => onSelectRoute(mainRecommendation.route.id)}
-        >
-          <span className={`route-status ${mainRecommendation.status}`}>
-            {statusLabel(mainRecommendation.status)}
-          </span>
-          <strong>{mainRecommendation.route.name}</strong>
-          <span>{mainRecommendation.reason}</span>
-          <small>
-            {mainRecommendation.route.durationMinutes} min | {demandLabel(mainRecommendation.route.demand)}
-          </small>
-        </button>
+      {activeTab === "routes" && (
+        <section className="tab-content routes-tab" aria-label="Recomendaciones personalizadas">
+          {mainRecommendation && (
+            <button type="button" className="featured-route" onClick={() => onSelectRoute(mainRecommendation.route.id)}>
+              <span className={`route-status ${mainRecommendation.status}`}>{statusLabel(mainRecommendation.status)}</span>
+              <strong>{mainRecommendation.route.name}</strong>
+              <span>{mainRecommendation.reason}</span>
+              <small>Desde ${mainRecommendation.route.estimatedCostUsd} · {mainRecommendation.route.durationMinutes} min · {demandLabel(mainRecommendation.route.demand)}</small>
+            </button>
+          )}
+          <div className="panel-list route-list">
+            {recommendations.slice(1).map((recommendation) => (
+              <button
+                type="button"
+                key={recommendation.route.id}
+                className={selectedRouteId === recommendation.route.id ? "route-card selected" : "route-card"}
+                onClick={() => onSelectRoute(recommendation.route.id)}
+              >
+                <span className={`route-status ${recommendation.status}`}>{statusLabel(recommendation.status)}</span>
+                <strong>{recommendation.route.name}</strong>
+                <span>{recommendation.route.description}</span>
+                <small>Desde ${recommendation.route.estimatedCostUsd} · Accesibilidad {recommendation.route.accessibility}</small>
+              </button>
+            ))}
+          </div>
+        </section>
       )}
 
-      <div className="panel-list route-list">
-        {recommendations.slice(1).map((recommendation) => {
-          const isSelected = selectedRouteId === recommendation.route.id;
+      {activeTab === "beaches" && (
+        <section className="tab-content beaches-tab">
+          <BeachSafety alerts={allAlerts} selectedPointId={selectedPointId} onSelectBeach={onSelectAlert} />
+        </section>
+      )}
 
-          return (
-            <button
-              type="button"
-              key={recommendation.route.id}
-              className={isSelected ? "route-card selected" : "route-card"}
-              onClick={() => onSelectRoute(recommendation.route.id)}
-            >
-              <span className={`route-status ${recommendation.status}`}>
-                {statusLabel(recommendation.status)}
-              </span>
-              <strong>{recommendation.route.name}</strong>
-              <span>{recommendation.route.description}</span>
-              <small>
-                Accesibilidad {recommendation.route.accessibility} | {demandLabel(recommendation.route.demand)}
-              </small>
-            </button>
-          );
-        })}
-      </div>
-
-      <section className="marine-compact">
+      {activeTab === "alerts" && <section className="marine-compact tab-content">
         <div className="marine-header">
           <div>
             <h3>Alertas maritimas</h3>
@@ -156,7 +146,7 @@ export function TourismPanel({
             ))
           )}
         </div>
-      </section>
+      </section>}
     </aside>
   );
 }

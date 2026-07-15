@@ -3,10 +3,12 @@ import { MapView } from "./components/MapView";
 import { TourismPanel } from "./components/TourismPanel";
 import { AccessibilityToolbar } from "./components/AccessibilityToolbar";
 import { LandingPage } from "./components/LandingPage";
+import { TouristAssistant } from "./components/TouristAssistant";
 import { createMarineDataProvider } from "./data/createProvider";
 import { TOURISM_ROUTES } from "./data/tourismRoutes";
 import { evaluateAlerts } from "./domain/alerts";
 import { recommendTourismRoutes } from "./domain/recommendations";
+import { getPersonalizedRecommendations } from "./domain/touristAssistant";
 import type { AlertFilter, MarinePoint } from "./types/marine";
 
 const provider = createMarineDataProvider();
@@ -32,7 +34,9 @@ export default function App() {
   const [showExplorer, setShowExplorer] = useState(
     () => new URLSearchParams(window.location.search).get("view") === "map",
   );
-  const [entryRequest, setEntryRequest] = useState("");
+  const [entryRequest, setEntryRequest] = useState(
+    () => new URLSearchParams(window.location.search).get("q") ?? "",
+  );
 
   useEffect(() => {
     window.localStorage.setItem("manta-large-text", String(largeText));
@@ -82,18 +86,19 @@ export default function App() {
     [alerts],
   );
 
+  const personalizedRecommendations = useMemo(() => {
+    if (!entryRequest.trim()) return [];
+    return getPersonalizedRecommendations(entryRequest, recommendations).map(
+      (match) => match.recommendation,
+    );
+  }, [entryRequest, recommendations]);
+
+  const displayedRecommendations =
+    personalizedRecommendations.length > 0 ? personalizedRecommendations : recommendations;
+  const hasPlan = entryRequest.trim().length > 0;
+
   const lowDemandRoutes = useMemo(
     () => recommendations.filter((item) => item.route.demand === "low").length,
-    [recommendations],
-  );
-
-  const localImpactZones = useMemo(
-    () =>
-      new Set(
-        recommendations
-          .filter((item) => item.status === "recommended")
-          .map((item) => item.route.experienceType),
-      ).size,
     [recommendations],
   );
 
@@ -112,18 +117,18 @@ export default function App() {
   }, [filteredAlerts, selectedPointId]);
 
   useEffect(() => {
-    if (recommendations.length === 0) {
+    if (displayedRecommendations.length === 0) {
       setSelectedRouteId(null);
       return;
     }
 
-    const selectedIsVisible = recommendations.some(
+    const selectedIsVisible = displayedRecommendations.some(
       (recommendation) => recommendation.route.id === selectedRouteId,
     );
     if (!selectedIsVisible) {
-      setSelectedRouteId(recommendations[0].route.id);
+      setSelectedRouteId(displayedRecommendations[0].route.id);
     }
-  }, [recommendations, selectedRouteId]);
+  }, [displayedRecommendations, selectedRouteId]);
 
   const accessibilityClasses = [largeText ? "large-text" : "", highContrast ? "high-contrast" : ""]
     .filter(Boolean)
@@ -132,8 +137,17 @@ export default function App() {
   function openExplorer(request: string) {
     setEntryRequest(request);
     setShowExplorer(true);
-    window.history.replaceState(null, "", `${window.location.pathname}?view=map`);
+    const params = new URLSearchParams({ view: "map" });
+    if (request) params.set("q", request);
+    window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function updatePlanRequest(request: string) {
+    setEntryRequest(request);
+    const params = new URLSearchParams({ view: "map" });
+    if (request) params.set("q", request);
+    window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
   }
 
   return (
@@ -172,28 +186,32 @@ export default function App() {
         </div>
       </section>
 
-      <section className="impact-strip" aria-label="Indicadores de impacto local">
-        <div>
-          <strong>{recommendations.filter((item) => item.status === "recommended").length}</strong>
-          <span>rutas recomendadas hoy</span>
-        </div>
-        <div>
-          <strong>{lowDemandRoutes}</strong>
-          <span>zonas con baja demanda</span>
-        </div>
-        <div>
-          <strong>{localImpactZones}</strong>
-          <span>tipos de economia local activados</span>
-        </div>
-        <div>
-          <strong>{activeAlerts.length}</strong>
-          <span>alertas que afectan experiencias turisticas</span>
-        </div>
+      <section className={hasPlan ? "planner-conversation compact" : "planner-conversation welcome"} aria-label="Asistente turístico inteligente">
+        {!hasPlan && (
+          <div className="planner-intro">
+            <span>Planifica con inteligencia</span>
+            <h2>Primero, cuéntanos qué necesitas</h2>
+            <p>No mostraremos cientos de lugares sin contexto. Dinos con quién viajas, cuánto quieres gastar o qué te gustaría hacer.</p>
+          </div>
+        )}
+        <TouristAssistant
+          recommendations={recommendations}
+          onSelectRoute={setSelectedRouteId}
+          initialRequest={entryRequest}
+          onRequestChange={updatePlanRequest}
+          showResults={false}
+        />
       </section>
 
-      <section className="content-layout" aria-label="Planificador turístico y mapa de Manta">
+      {hasPlan && (
+      <>
+      <section className="plan-summary" aria-live="polite">
+        <div><span>Tu búsqueda</span><strong>“{entryRequest}”</strong></div>
+        <p>Encontramos {displayedRecommendations.length} opciones que encajan mejor contigo. Selecciona una para verla en el mapa.</p>
+      </section>
+      <section className="content-layout planned" aria-label="Recomendaciones personalizadas y mapa de Manta">
         <TourismPanel
-          recommendations={recommendations}
+          recommendations={displayedRecommendations}
           alerts={filteredAlerts}
           allAlerts={alerts}
           selectedRouteId={selectedRouteId}
@@ -202,11 +220,10 @@ export default function App() {
           onFilterChange={setFilter}
           onSelectRoute={setSelectedRouteId}
           onSelectAlert={setSelectedPointId}
-          initialRequest={entryRequest}
         />
         <MapView
           alerts={alerts}
-          recommendations={recommendations}
+          recommendations={displayedRecommendations}
           selectedRouteId={selectedRouteId}
           selectedPointId={selectedPointId}
           filter={filter}
@@ -214,6 +231,8 @@ export default function App() {
           onPointSelect={setSelectedPointId}
         />
       </section>
+      </>
+      )}
       </main>
       )}
     </div>

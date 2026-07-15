@@ -6,6 +6,8 @@ interface TouristAssistantProps {
   recommendations: RouteRecommendation[];
   onSelectRoute: (routeId: string) => void;
   initialRequest?: string;
+  onRequestChange?: (request: string) => void;
+  showResults?: boolean;
 }
 
 const EXAMPLES = [
@@ -21,7 +23,13 @@ const QUICK_PREFERENCES = [
   { label: "Accesible", query: "Necesito lugares accesibles para movilidad reducida" },
 ];
 
-export function TouristAssistant({ recommendations, onSelectRoute, initialRequest = "" }: TouristAssistantProps) {
+export function TouristAssistant({
+  recommendations,
+  onSelectRoute,
+  initialRequest = "",
+  onRequestChange,
+  showResults = true,
+}: TouristAssistantProps) {
   const [request, setRequest] = useState("");
   const [query, setQuery] = useState("");
   const matches = query ? getPersonalizedRecommendations(query, recommendations) : [];
@@ -37,6 +45,7 @@ export function TouristAssistant({ recommendations, onSelectRoute, initialReques
     if (!cleanValue) return;
     setRequest(cleanValue);
     setQuery(cleanValue);
+    onRequestChange?.(cleanValue);
   }
 
   return (
@@ -73,11 +82,11 @@ export function TouristAssistant({ recommendations, onSelectRoute, initialReques
           ))}
         </div>
       )}
-      {matches.length > 0 && (
+      {showResults && matches.length > 0 && (
         <div className="assistant-results" aria-live="polite">
           <div className="assistant-results-heading">
             <p>Estas opciones encajan mejor contigo:</p>
-            <button type="button" onClick={() => { setQuery(""); setRequest(""); }}>Nueva búsqueda</button>
+            <button type="button" onClick={() => { setQuery(""); setRequest(""); onRequestChange?.(""); }}>Nueva búsqueda</button>
           </div>
           {matches.map(({ recommendation, explanation }, index) => (
             <button

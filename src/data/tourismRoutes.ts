@@ -45,8 +45,8 @@ export const TOURISM_ROUTES: TourismRoute[] = [
   },
   {
     id: "san-mateo-pesquero",
-    name: "Ruta pesquera San Mateo",
-    description: "Visita guiada a comunidad pesquera, miradores y cultura costera.",
+    name: "San Mateo cultural y costero",
+    description: "Visita guiada por miradores, tradiciones locales y cultura costera de San Mateo.",
     coordinates: [-80.811, -0.975],
     durationMinutes: 110,
     accessibility: "medium",
