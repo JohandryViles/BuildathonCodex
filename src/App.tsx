@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { MapView } from "./components/MapView";
 import { TourismPanel } from "./components/TourismPanel";
 import { AccessibilityToolbar } from "./components/AccessibilityToolbar";
+import { LandingPage } from "./components/LandingPage";
 import { createMarineDataProvider } from "./data/createProvider";
 import { TOURISM_ROUTES } from "./data/tourismRoutes";
 import { evaluateAlerts } from "./domain/alerts";
@@ -28,6 +29,8 @@ export default function App() {
   const [highContrast, setHighContrast] = useState(
     () => window.localStorage.getItem("manta-high-contrast") === "true",
   );
+  const [showExplorer, setShowExplorer] = useState(false);
+  const [entryRequest, setEntryRequest] = useState("");
 
   useEffect(() => {
     window.localStorage.setItem("manta-large-text", String(largeText));
@@ -124,6 +127,12 @@ export default function App() {
     .filter(Boolean)
     .join(" ");
 
+  function openExplorer(request: string) {
+    setEntryRequest(request);
+    setShowExplorer(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   return (
     <div className={accessibilityClasses}>
       <a className="skip-link" href="#main-content">Saltar al contenido principal</a>
@@ -133,7 +142,13 @@ export default function App() {
         onLargeTextChange={setLargeText}
         onHighContrastChange={setHighContrast}
       />
+      {!showExplorer ? (
+        <LandingPage onExplore={openExplorer} />
+      ) : (
       <main className="app-shell" id="main-content" tabIndex={-1}>
+      <button className="back-to-landing" type="button" onClick={() => setShowExplorer(false)}>
+        <span aria-hidden="true">←</span> Volver a explorar Manta
+      </button>
       <section className="app-header" aria-labelledby="page-title">
         <div>
           <span className="eyebrow">Manta, Manabí · Ecuador</span>
@@ -181,6 +196,7 @@ export default function App() {
           onFilterChange={setFilter}
           onSelectRoute={setSelectedRouteId}
           onSelectAlert={setSelectedPointId}
+          initialRequest={entryRequest}
         />
         <MapView
           alerts={alerts}
@@ -193,6 +209,7 @@ export default function App() {
         />
       </section>
       </main>
+      )}
     </div>
   );
 }

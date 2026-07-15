@@ -19,6 +19,7 @@ interface TourismPanelProps {
   onFilterChange: (filter: AlertFilter) => void;
   onSelectRoute: (routeId: string) => void;
   onSelectAlert: (pointId: string) => void;
+  initialRequest?: string;
 }
 
 const FILTER_OPTIONS: AlertFilter[] = ["all", "watch", "warning", "danger"];
@@ -52,6 +53,7 @@ export function TourismPanel({
   onFilterChange,
   onSelectRoute,
   onSelectAlert,
+  initialRequest,
 }: TourismPanelProps) {
   const mainRecommendation = recommendations[0];
 
@@ -63,7 +65,7 @@ export function TourismPanel({
         <p>La app prioriza accesibilidad, baja saturacion e impacto local.</p>
       </header>
 
-      <TouristAssistant recommendations={recommendations} onSelectRoute={onSelectRoute} />
+      <TouristAssistant recommendations={recommendations} onSelectRoute={onSelectRoute} initialRequest={initialRequest} />
 
       <BeachSafety
         alerts={allAlerts}

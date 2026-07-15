@@ -35,6 +35,8 @@ export type TourismTag =
   | "park"
   | "culture"
   | "food"
+  | "shopping"
+  | "nightlife"
   | "nature"
   | "accessible";
 
@@ -46,7 +48,7 @@ export interface TourismRoute {
   durationMinutes: number;
   accessibility: AccessibilityLevel;
   demand: DemandLevel;
-  experienceType: "cultural" | "coastal" | "gastronomy" | "nature" | "artisan";
+  experienceType: "cultural" | "coastal" | "gastronomy" | "nature" | "artisan" | "shopping" | "nightlife";
   localImpact: string;
   relatedStationIds: string[];
   estimatedCostUsd: number;

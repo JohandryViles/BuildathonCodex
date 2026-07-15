@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getPersonalizedRecommendations } from "../domain/touristAssistant";
 import type { RouteRecommendation } from "../types/marine";
 
 interface TouristAssistantProps {
   recommendations: RouteRecommendation[];
   onSelectRoute: (routeId: string) => void;
+  initialRequest?: string;
 }
 
 const EXAMPLES = [
@@ -20,10 +21,16 @@ const QUICK_PREFERENCES = [
   { label: "Accesible", query: "Necesito lugares accesibles para movilidad reducida" },
 ];
 
-export function TouristAssistant({ recommendations, onSelectRoute }: TouristAssistantProps) {
+export function TouristAssistant({ recommendations, onSelectRoute, initialRequest = "" }: TouristAssistantProps) {
   const [request, setRequest] = useState("");
   const [query, setQuery] = useState("");
   const matches = query ? getPersonalizedRecommendations(query, recommendations) : [];
+
+  useEffect(() => {
+    if (!initialRequest) return;
+    setRequest(initialRequest);
+    setQuery(initialRequest);
+  }, [initialRequest]);
 
   function submit(value: string) {
     const cleanValue = value.trim();

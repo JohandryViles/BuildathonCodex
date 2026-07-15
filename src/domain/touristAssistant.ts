@@ -20,6 +20,8 @@ const intentPatterns: { tag: TourismTag; words: string[] }[] = [
   { tag: "park", words: ["parque", "juegos", "espacio verde"] },
   { tag: "culture", words: ["cultura", "museo", "historia", "artesania"] },
   { tag: "food", words: ["comer", "comida", "gastronomia", "restaurante"] },
+  { tag: "shopping", words: ["mall", "shopping", "compras", "tiendas", "centro comercial"] },
+  { tag: "nightlife", words: ["tomar", "bares", "bar", "coctel", "vida nocturna", "noche"] },
   { tag: "nature", words: ["naturaleza", "bosque", "sendero"] },
   { tag: "accessible", words: ["accesible", "silla de ruedas", "movilidad", "adulto mayor"] },
 ];
