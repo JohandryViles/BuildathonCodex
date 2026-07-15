@@ -21,3 +21,28 @@ export interface MarineAlert {
 }
 
 export type AlertFilter = "all" | Exclude<AlertLevel, "normal">;
+
+export type AccessibilityLevel = "high" | "medium" | "low";
+export type DemandLevel = "low" | "medium" | "high";
+export type RecommendationStatus = "recommended" | "caution" | "avoid";
+
+export interface TourismRoute {
+  id: string;
+  name: string;
+  description: string;
+  coordinates: [number, number];
+  durationMinutes: number;
+  accessibility: AccessibilityLevel;
+  demand: DemandLevel;
+  experienceType: "cultural" | "coastal" | "gastronomy" | "nature" | "artisan";
+  localImpact: string;
+  relatedStationIds: string[];
+}
+
+export interface RouteRecommendation {
+  route: TourismRoute;
+  status: RecommendationStatus;
+  score: number;
+  reason: string;
+  relatedAlerts: MarineAlert[];
+}

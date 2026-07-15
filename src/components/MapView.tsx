@@ -2,17 +2,20 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import maplibregl, { type Map } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { FeatureCollection, Point, Polygon } from "geojson";
-import type { AlertFilter, MarineAlert } from "../types/marine";
+import type { AlertFilter, MarineAlert, RouteRecommendation } from "../types/marine";
 import { TEMPERATURE_THRESHOLDS, WAVE_THRESHOLDS, evaluateMarinePoint } from "../domain/alerts";
 import { fetchMarineConditions } from "../data/openMeteo";
 
 const SOURCE_ID = "marine-alerts-source";
+const ROUTE_SOURCE_ID = "tourism-routes-source";
 const GLOBAL_FIELD_SOURCE_ID = "global-marine-field-source";
 const TEMP_FIELD_LAYER_ID = "global-temp-layer";
 const WAVE_FIELD_LAYER_ID = "global-wave-layer";
 const LAND_MASK_LAYER_ID = "global-land-mask-layer";
 const WAVE_LAYER_ID = "marine-wave-layer";
 const LAYER_ID = "marine-alerts-layer";
+const ROUTE_HALO_LAYER_ID = "tourism-routes-halo-layer";
+const ROUTE_LAYER_ID = "tourism-routes-layer";
 const USER_LOCATION_RADIUS_KM = 100;
 const GRID_STEP_DEGREES = 2;
 const WAVE_BASE_RADIUS_EXPRESSION: maplibregl.ExpressionSpecification = [
@@ -40,8 +43,11 @@ const ALERT_BASE_RADIUS_EXPRESSION: maplibregl.ExpressionSpecification = [
 
 interface MapViewProps {
   alerts: MarineAlert[];
+  recommendations: RouteRecommendation[];
+  selectedRouteId: string | null;
   selectedPointId: string | null;
   filter: AlertFilter;
+  onRouteSelect: (routeId: string) => void;
   onPointSelect: (pointId: string) => void;
 }
 
@@ -189,28 +195,68 @@ function toGeoJson(alerts: MarineAlert[]): FeatureCollection<Point> {
   };
 }
 
+function toRouteGeoJson(recommendations: RouteRecommendation[]): FeatureCollection<Point> {
+  return {
+    type: "FeatureCollection",
+    features: recommendations.map((recommendation) => ({
+      type: "Feature",
+      geometry: {
+        type: "Point",
+        coordinates: recommendation.route.coordinates,
+      },
+      properties: {
+        routeId: recommendation.route.id,
+        name: recommendation.route.name,
+        status: recommendation.status,
+        description: recommendation.route.description,
+        durationMinutes: recommendation.route.durationMinutes,
+        accessibility: recommendation.route.accessibility,
+        demand: recommendation.route.demand,
+        localImpact: recommendation.route.localImpact,
+        reason: recommendation.reason,
+      },
+    })),
+  };
+}
+
+function statusLabel(status: string) {
+  if (status === "avoid") return "Redirigir";
+  if (status === "caution") return "Precaucion";
+  return "Recomendada";
+}
+
 export function MapView({
   alerts,
+  recommendations,
+  selectedRouteId,
   selectedPointId,
   filter,
+  onRouteSelect,
   onPointSelect,
 }: MapViewProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<Map | null>(null);
   const flowCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const onPointSelectRef = useRef(onPointSelect);
+  const onRouteSelectRef = useRef(onRouteSelect);
   const waveAnimationFrameRef = useRef<number | null>(null);
   const globalFieldIntervalRef = useRef<number | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [isPanelOpen, setIsPanelOpen] = useState(true);
+  const [showRoutes, setShowRoutes] = useState(true);
   const [showTemperature, setShowTemperature] = useState(true);
   const [showWave, setShowWave] = useState(true);
   const [showFlow, setShowFlow] = useState(true);
   const [showStations, setShowStations] = useState(true);
 
   onPointSelectRef.current = onPointSelect;
+  onRouteSelectRef.current = onRouteSelect;
 
   const geoJsonData = useMemo(() => toGeoJson(alerts), [alerts]);
+  const routeGeoJsonData = useMemo(
+    () => toRouteGeoJson(recommendations),
+    [recommendations],
+  );
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) {
@@ -220,9 +266,9 @@ export function MapView({
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
       style: "https://demotiles.maplibre.org/style.json",
-      center: [-75.2, 9.7],
-      zoom: 5,
-      minZoom: 3,
+      center: [-80.75, -0.98],
+      zoom: 11,
+      minZoom: 8,
     });
 
     map.addControl(new maplibregl.NavigationControl({ showCompass: true }), "top-right");
@@ -341,6 +387,11 @@ export function MapView({
         data: toGeoJson([]),
       });
 
+      map.addSource(ROUTE_SOURCE_ID, {
+        type: "geojson",
+        data: toRouteGeoJson([]),
+      });
+
       map.addLayer({
         id: WAVE_LAYER_ID,
         type: "circle",
@@ -384,6 +435,47 @@ export function MapView({
           "circle-stroke-width": 2,
           "circle-stroke-color": "#0f172a",
           "circle-opacity": 0.9,
+        },
+      });
+
+      map.addLayer({
+        id: ROUTE_HALO_LAYER_ID,
+        type: "circle",
+        source: ROUTE_SOURCE_ID,
+        paint: {
+          "circle-color": [
+            "match",
+            ["get", "status"],
+            "avoid",
+            "#ef4444",
+            "caution",
+            "#f59e0b",
+            "#22c55e",
+          ],
+          "circle-radius": 17,
+          "circle-opacity": 0.18,
+          "circle-stroke-width": 0,
+        },
+      });
+
+      map.addLayer({
+        id: ROUTE_LAYER_ID,
+        type: "circle",
+        source: ROUTE_SOURCE_ID,
+        paint: {
+          "circle-color": [
+            "match",
+            ["get", "status"],
+            "avoid",
+            "#ef4444",
+            "caution",
+            "#f59e0b",
+            "#22c55e",
+          ],
+          "circle-radius": 8,
+          "circle-stroke-width": 2,
+          "circle-stroke-color": "#f8fafc",
+          "circle-opacity": 0.96,
         },
       });
 
@@ -451,11 +543,51 @@ export function MapView({
           .addTo(map);
       });
 
+      map.on("click", ROUTE_LAYER_ID, (event) => {
+        const feature = event.features?.[0];
+
+        if (!feature || feature.geometry.type !== "Point") {
+          return;
+        }
+
+        const routeId = String(feature.properties?.routeId ?? "");
+        const name = String(feature.properties?.name ?? "Ruta");
+        const status = String(feature.properties?.status ?? "recommended");
+        const description = String(feature.properties?.description ?? "");
+        const reason = String(feature.properties?.reason ?? "");
+        const duration = Number(feature.properties?.durationMinutes ?? 0);
+        const localImpact = String(feature.properties?.localImpact ?? "");
+
+        if (routeId) {
+          onRouteSelectRef.current(routeId);
+        }
+
+        new maplibregl.Popup({ closeButton: true, closeOnClick: true })
+          .setLngLat(feature.geometry.coordinates as [number, number])
+          .setHTML(
+            `<strong>${name}</strong><br/>` +
+              `Estado: ${statusLabel(status)}<br/>` +
+              `${description}<br/>` +
+              `Duracion: ${duration} min<br/>` +
+              `${reason}<br/>` +
+              `<small>${localImpact}</small>`,
+          )
+          .addTo(map);
+      });
+
       map.on("mouseenter", LAYER_ID, () => {
         map.getCanvas().style.cursor = "pointer";
       });
 
       map.on("mouseleave", LAYER_ID, () => {
+        map.getCanvas().style.cursor = "";
+      });
+
+      map.on("mouseenter", ROUTE_LAYER_ID, () => {
+        map.getCanvas().style.cursor = "pointer";
+      });
+
+      map.on("mouseleave", ROUTE_LAYER_ID, () => {
         map.getCanvas().style.cursor = "";
       });
 
@@ -468,7 +600,7 @@ export function MapView({
 
       map.on("click", (event) => {
         const stationHit = map.queryRenderedFeatures(event.point, {
-          layers: [LAYER_ID],
+          layers: [LAYER_ID, ROUTE_LAYER_ID],
         });
         if (stationHit.length > 0) {
           return;
@@ -604,12 +736,43 @@ export function MapView({
       return;
     }
 
+    const source = map.getSource(ROUTE_SOURCE_ID) as
+      | maplibregl.GeoJSONSource
+      | undefined;
+    if (!source) {
+      return;
+    }
+
+    source.setData(routeGeoJsonData as FeatureCollection<Point>);
+
+    map.setPaintProperty(ROUTE_LAYER_ID, "circle-radius", [
+      "case",
+      ["==", ["get", "routeId"], selectedRouteId ?? ""],
+      12,
+      8,
+    ]);
+    map.setPaintProperty(ROUTE_HALO_LAYER_ID, "circle-radius", [
+      "case",
+      ["==", ["get", "routeId"], selectedRouteId ?? ""],
+      25,
+      17,
+    ]);
+  }, [routeGeoJsonData, selectedRouteId]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) {
+      return;
+    }
+
     setLayerVisibility(map, TEMP_FIELD_LAYER_ID, showTemperature);
     setLayerVisibility(map, WAVE_FIELD_LAYER_ID, showWave);
     setLayerVisibility(map, WAVE_LAYER_ID, showStations && showWave);
     setLayerVisibility(map, LAYER_ID, showStations);
+    setLayerVisibility(map, ROUTE_LAYER_ID, showRoutes);
+    setLayerVisibility(map, ROUTE_HALO_LAYER_ID, showRoutes);
     setLayerVisibility(map, LAND_MASK_LAYER_ID, showTemperature || showWave);
-  }, [showTemperature, showWave, showStations]);
+  }, [showTemperature, showWave, showStations, showRoutes]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -784,6 +947,26 @@ export function MapView({
 
   useEffect(() => {
     const map = mapRef.current;
+    if (!map || !selectedRouteId) {
+      return;
+    }
+
+    const selected = recommendations.find(
+      (recommendation) => recommendation.route.id === selectedRouteId,
+    );
+    if (!selected) {
+      return;
+    }
+
+    map.flyTo({
+      center: selected.route.coordinates,
+      zoom: Math.max(map.getZoom(), 12),
+      essential: true,
+    });
+  }, [recommendations, selectedRouteId]);
+
+  useEffect(() => {
+    const map = mapRef.current;
     if (!map || !selectedPointId) {
       return;
     }
@@ -795,7 +978,7 @@ export function MapView({
 
     map.flyTo({
       center: selected.coordinates,
-      zoom: Math.max(map.getZoom(), 6.5),
+      zoom: Math.max(map.getZoom(), 12),
       essential: true,
     });
   }, [alerts, selectedPointId]);
@@ -822,6 +1005,15 @@ export function MapView({
 
         {isPanelOpen && (
           <div className="overlay-panel-body">
+            <label className="overlay-toggle">
+              <input
+                type="checkbox"
+                checked={showRoutes}
+                onChange={(event) => setShowRoutes(event.target.checked)}
+              />
+              Rutas turisticas
+            </label>
+
             <label className="overlay-toggle">
               <input
                 type="checkbox"
