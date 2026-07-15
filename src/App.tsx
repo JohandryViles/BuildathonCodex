@@ -29,7 +29,9 @@ export default function App() {
   const [highContrast, setHighContrast] = useState(
     () => window.localStorage.getItem("manta-high-contrast") === "true",
   );
-  const [showExplorer, setShowExplorer] = useState(false);
+  const [showExplorer, setShowExplorer] = useState(
+    () => new URLSearchParams(window.location.search).get("view") === "map",
+  );
   const [entryRequest, setEntryRequest] = useState("");
 
   useEffect(() => {
@@ -130,6 +132,7 @@ export default function App() {
   function openExplorer(request: string) {
     setEntryRequest(request);
     setShowExplorer(true);
+    window.history.replaceState(null, "", `${window.location.pathname}?view=map`);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -146,7 +149,10 @@ export default function App() {
         <LandingPage onExplore={openExplorer} />
       ) : (
       <main className="app-shell" id="main-content" tabIndex={-1}>
-      <button className="back-to-landing" type="button" onClick={() => setShowExplorer(false)}>
+      <button className="back-to-landing" type="button" onClick={() => {
+        setShowExplorer(false);
+        window.history.replaceState(null, "", window.location.pathname);
+      }}>
         <span aria-hidden="true">←</span> Volver a explorar Manta
       </button>
       <section className="app-header" aria-labelledby="page-title">

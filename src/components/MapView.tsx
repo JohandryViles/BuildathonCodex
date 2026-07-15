@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import maplibregl, { type Map } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { FeatureCollection, Point, Polygon } from "geojson";
@@ -19,6 +19,15 @@ const ROUTE_HALO_LAYER_ID = "tourism-routes-halo-layer";
 const ROUTE_LAYER_ID = "tourism-routes-layer";
 const USER_LOCATION_RADIUS_KM = 100;
 const GRID_STEP_DEGREES = 2;
+const MANTA_SEARCH_VIEWBOX = "-80.95,-0.85,-80.55,-1.15";
+
+interface PlaceSearchResult {
+  place_id: number;
+  display_name: string;
+  lat: string;
+  lon: string;
+  type: string;
+}
 const WAVE_BASE_RADIUS_EXPRESSION: maplibregl.ExpressionSpecification = [
   "interpolate",
   ["linear"],
@@ -243,6 +252,7 @@ export function MapView({
   const onRouteSelectRef = useRef(onRouteSelect);
   const waveAnimationFrameRef = useRef<number | null>(null);
   const globalFieldIntervalRef = useRef<number | null>(null);
+  const searchMarkerRef = useRef<maplibregl.Marker | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [mapStatus, setMapStatus] = useState<"loading" | "ready" | "error">("loading");
   const [isPanelOpen, setIsPanelOpen] = useState(true);
@@ -251,6 +261,10 @@ export function MapView({
   const [showWave, setShowWave] = useState(false);
   const [showFlow, setShowFlow] = useState(false);
   const [showStations, setShowStations] = useState(true);
+  const [placeQuery, setPlaceQuery] = useState("");
+  const [placeResults, setPlaceResults] = useState<PlaceSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchMessage, setSearchMessage] = useState("");
 
   onPointSelectRef.current = onPointSelect;
   onRouteSelectRef.current = onRouteSelect;
@@ -268,10 +282,11 @@ export function MapView({
 
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
-      style: "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json",
+      style: "https://tiles.openfreemap.org/styles/liberty",
       center: [-80.735, -0.965],
-      zoom: 12.4,
-      minZoom: 9,
+      zoom: 13.2,
+      minZoom: 10,
+      maxZoom: 19,
     });
 
     map.on("error", () => {
@@ -701,6 +716,8 @@ export function MapView({
         window.clearInterval(globalFieldIntervalRef.current);
         globalFieldIntervalRef.current = null;
       }
+      searchMarkerRef.current?.remove();
+      searchMarkerRef.current = null;
       map.remove();
       mapRef.current = null;
       setMapReady(false);
@@ -990,6 +1007,45 @@ export function MapView({
     });
   }, [alerts, selectedPointId]);
 
+  async function searchPlaces(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const query = placeQuery.trim();
+    if (!query) return;
+
+    setIsSearching(true);
+    setSearchMessage("");
+    try {
+      const url =
+        `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6` +
+        `&countrycodes=ec&bounded=1&viewbox=${MANTA_SEARCH_VIEWBOX}&q=${encodeURIComponent(query)}`;
+      const response = await fetch(url, { headers: { "Accept-Language": "es" } });
+      if (!response.ok) throw new Error(`Nominatim respondió ${response.status}`);
+      const results = (await response.json()) as PlaceSearchResult[];
+      setPlaceResults(results);
+      setSearchMessage(results.length === 0 ? "No encontramos ese lugar dentro de Manta." : `${results.length} lugares encontrados.`);
+    } catch {
+      setPlaceResults([]);
+      setSearchMessage("No se pudo completar la búsqueda. Intenta nuevamente.");
+    } finally {
+      setIsSearching(false);
+    }
+  }
+
+  function selectPlace(result: PlaceSearchResult) {
+    const map = mapRef.current;
+    if (!map) return;
+    const coordinates: [number, number] = [Number(result.lon), Number(result.lat)];
+    searchMarkerRef.current?.remove();
+    searchMarkerRef.current = new maplibregl.Marker({ color: "#e85d3f" })
+      .setLngLat(coordinates)
+      .setPopup(new maplibregl.Popup({ offset: 24 }).setText(result.display_name))
+      .addTo(map);
+    searchMarkerRef.current.togglePopup();
+    map.flyTo({ center: coordinates, zoom: 16.5, essential: true });
+    setPlaceResults([]);
+    setSearchMessage(`Mostrando ${result.display_name.split(",")[0]} en el mapa.`);
+  }
+
   return (
     <div className="map-wrapper" role="region" aria-label="Mapa turístico interactivo de Manta">
       <p className="sr-only" aria-live="polite">
@@ -1001,6 +1057,32 @@ export function MapView({
         tabIndex={0}
         aria-label="Mapa con calles, lugares turísticos, playas y alertas de Manta"
       />
+      <section className="map-place-search" aria-label="Buscar lugares en Manta">
+        <form onSubmit={searchPlaces}>
+          <span aria-hidden="true">⌕</span>
+          <label className="sr-only" htmlFor="map-place-query">Buscar locales, calles o lugares turísticos</label>
+          <input
+            id="map-place-query"
+            type="search"
+            value={placeQuery}
+            onChange={(event) => setPlaceQuery(event.target.value)}
+            placeholder="Busca restaurantes, calles, hoteles..."
+            autoComplete="off"
+          />
+          <button type="submit" disabled={isSearching}>{isSearching ? "Buscando..." : "Buscar"}</button>
+        </form>
+        {(placeResults.length > 0 || searchMessage) && (
+          <div className="map-search-results" aria-live="polite">
+            {placeResults.map((result) => (
+              <button type="button" key={result.place_id} onClick={() => selectPlace(result)}>
+                <span aria-hidden="true">●</span>
+                <div><strong>{result.display_name.split(",")[0]}</strong><small>{result.display_name}</small></div>
+              </button>
+            ))}
+            {searchMessage && <p>{searchMessage}</p>}
+          </div>
+        )}
+      </section>
       {mapStatus !== "ready" && (
         <div className={`map-loading-state ${mapStatus}`} role="status" aria-live="polite">
           <span aria-hidden="true">{mapStatus === "error" ? "!" : "⌖"}</span>
