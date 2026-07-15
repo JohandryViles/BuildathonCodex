@@ -230,8 +230,119 @@ button {
 .content-layout {
   height: calc(100vh - 12rem);
   display: grid;
-  grid-template-columns: 320px 1fr;
+  grid-template-columns: minmax(0, 1fr) 300px;
   gap: 1rem;
+  min-height: 0;
+}
+
+.ai-notices-panel {
+  min-height: 0;
+  padding: 0.7rem;
+  border: 1px solid #1e293b;
+  border-radius: 0.85rem;
+  background: rgba(15, 23, 42, 0.88);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.ai-notices-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.ai-notices-header strong {
+  color: #e2e8f0;
+  font-size: 0.9rem;
+}
+
+.ai-notices-header small {
+  color: #94a3b8;
+  font-size: 0.7rem;
+}
+
+.ai-notices-list {
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.ai-notice-card {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.74);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 0.65rem;
+  padding: 0.5rem 0.6rem;
+  min-height: 84px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.24rem;
+  transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
+}
+
+.ai-notice-card:hover {
+  background: rgba(30, 41, 59, 0.86);
+  transform: translateX(-2px);
+}
+
+.ai-notice-card.selected {
+  border-color: #38bdf8;
+  background: rgba(14, 116, 144, 0.2);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.5);
+}
+
+.ai-notice-card:focus-visible {
+  outline: 2px solid #7dd3fc;
+  outline-offset: 2px;
+}
+
+.ai-notice-card strong {
+  font-size: 0.78rem;
+  color: #e2e8f0;
+}
+
+.ai-notice-message {
+  font-size: 0.72rem;
+  color: #cbd5e1;
+  line-height: 1.3;
+}
+
+.ai-notice-card small {
+  color: #94a3b8;
+  font-size: 0.68rem;
+}
+
+.ai-notice-card.severity-danger {
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.ai-notice-card.severity-warning {
+  border-color: rgba(249, 115, 22, 0.5);
+}
+
+.ai-notice-card.severity-watch {
+  border-color: rgba(245, 158, 11, 0.5);
+}
+
+.ai-notice-card.severity-info {
+  border-color: rgba(56, 189, 248, 0.45);
+}
+
+.ai-notice-empty {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  color: #94a3b8;
+  font-size: 0.82rem;
 }
 
 .timeline-bar {
@@ -600,6 +711,10 @@ button {
   .content-layout {
     grid-template-columns: 1fr;
     height: auto;
+  }
+
+  .ai-notices-panel {
+    max-height: 320px;
   }
 
   .map-root {
