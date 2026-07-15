@@ -100,10 +100,10 @@ function LandingPage() {
 
         <article className="experience-tile leisure-tile">
           <div className="tile-content">
-            <span className="tile-kicker">PRÓXIMAMENTE</span>
+            <span className="tile-kicker">EXPERIENCIAS EN MANTA</span>
             <h2>Turismo<br />&amp; Ocio</h2>
             <p>Planifica experiencias inolvidables junto al mar.</p>
-            <button onClick={() => navigate("/turismo")}>Descubrir <span>↗</span></button>
+            <button onClick={() => window.location.assign("/tourism.html")}>Descubrir <span>↗</span></button>
           </div>
         </article>
       </section>
@@ -121,7 +121,7 @@ function LandingPage() {
             <p>Consulta corrientes, mareas, oleaje, temperatura y alertas para planificar cada jornada con mayor seguridad.</p>
           </article>
           <article>
-            <span className="solution-number">02 &middot; PR&Oacute;XIMAMENTE</span>
+            <span className="solution-number">02</span>
             <h3>Turismo &amp; Ocio</h3>
             <p>Encuentra mejores momentos y lugares para disfrutar la costa, planificar recorridos y vivir el mar con confianza.</p>
           </article>
@@ -176,15 +176,17 @@ function LandingPage() {
 }
 
 function ComingSoonPage() {
+  useEffect(() => {
+    window.location.replace("/tourism.html");
+  }, []);
+
   return (
     <main className="coming-soon-page">
-      <button className="back-home" onClick={() => navigate("/")}>← Volver a MarIA</button>
       <section className="coming-soon-card">
         <BrandMark />
         <p className="eyebrow">TURISMO &amp; OCIO</p>
-        <h1>Muy pronto.</h1>
-        <p>Estamos preparando la mejor forma de descubrir y planificar tus experiencias en la costa.</p>
-        <button onClick={() => navigate("/")}>Conocer el monitoreo</button>
+        <h1>Abriendo turismo...</h1>
+        <p>Estamos preparando tus experiencias accesibles en Manta.</p>
       </section>
     </main>
   );
