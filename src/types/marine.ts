@@ -25,6 +25,18 @@ export type AlertFilter = "all" | Exclude<AlertLevel, "normal">;
 export type AccessibilityLevel = "high" | "medium" | "low";
 export type DemandLevel = "low" | "medium" | "high";
 export type RecommendationStatus = "recommended" | "caution" | "avoid";
+export type TourismTag =
+  | "free"
+  | "budget"
+  | "family"
+  | "children"
+  | "quiet"
+  | "beach"
+  | "park"
+  | "culture"
+  | "food"
+  | "nature"
+  | "accessible";
 
 export interface TourismRoute {
   id: string;
@@ -37,6 +49,8 @@ export interface TourismRoute {
   experienceType: "cultural" | "coastal" | "gastronomy" | "nature" | "artisan";
   localImpact: string;
   relatedStationIds: string[];
+  estimatedCostUsd: number;
+  tags: TourismTag[];
 }
 
 export interface RouteRecommendation {

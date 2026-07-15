@@ -12,6 +12,8 @@ export const TOURISM_ROUTES: TourismRoute[] = [
     experienceType: "coastal",
     localImpact: "Conecta restaurantes, guias locales y servicios del malecon.",
     relatedStationIds: ["playa-murcielago", "manta-puerto"],
+    estimatedCostUsd: 5,
+    tags: ["budget", "family", "children", "beach", "accessible"],
   },
   {
     id: "centro-cultural-manta",
@@ -24,6 +26,8 @@ export const TOURISM_ROUTES: TourismRoute[] = [
     experienceType: "cultural",
     localImpact: "Distribuye visitantes hacia comercios y guias del centro.",
     relatedStationIds: ["manta-puerto", "tarqui"],
+    estimatedCostUsd: 3,
+    tags: ["free", "budget", "family", "culture", "accessible"],
   },
   {
     id: "gastronomia-tarqui",
@@ -36,6 +40,8 @@ export const TOURISM_ROUTES: TourismRoute[] = [
     experienceType: "gastronomy",
     localImpact: "Activa restaurantes, mercados y emprendimientos familiares.",
     relatedStationIds: ["tarqui", "jaramijo"],
+    estimatedCostUsd: 10,
+    tags: ["budget", "family", "food"],
   },
   {
     id: "san-mateo-pesquero",
@@ -48,6 +54,8 @@ export const TOURISM_ROUTES: TourismRoute[] = [
     experienceType: "coastal",
     localImpact: "Genera ingresos directos para guias y familias pesqueras.",
     relatedStationIds: ["san-mateo"],
+    estimatedCostUsd: 6,
+    tags: ["budget", "quiet", "beach", "culture"],
   },
   {
     id: "santa-marianita-activa",
@@ -60,6 +68,8 @@ export const TOURISM_ROUTES: TourismRoute[] = [
     experienceType: "coastal",
     localImpact: "Descentraliza turismo hacia operadores y escuelas locales.",
     relatedStationIds: ["santa-marianita"],
+    estimatedCostUsd: 8,
+    tags: ["budget", "quiet", "beach"],
   },
   {
     id: "pacoche-naturaleza",
@@ -72,6 +82,8 @@ export const TOURISM_ROUTES: TourismRoute[] = [
     experienceType: "nature",
     localImpact: "Beneficia guias comunitarios y conserva presion fuera de playas saturadas.",
     relatedStationIds: ["pacoche", "santa-marianita"],
+    estimatedCostUsd: 12,
+    tags: ["family", "quiet", "nature"],
   },
   {
     id: "montecristi-artesanal",
@@ -84,5 +96,21 @@ export const TOURISM_ROUTES: TourismRoute[] = [
     experienceType: "artisan",
     localImpact: "Conecta visitantes con artesanos y comercio patrimonial.",
     relatedStationIds: ["jaramijo", "manta-puerto"],
+    estimatedCostUsd: 10,
+    tags: ["family", "children", "quiet", "culture", "accessible"],
+  },
+  {
+    id: "parques-centro-manta",
+    name: "Parques y paseo del centro",
+    description: "Recorrido familiar por espacios verdes, plazas y zonas peatonales del centro de Manta.",
+    coordinates: [-80.712, -0.952],
+    durationMinutes: 80,
+    accessibility: "high",
+    demand: "low",
+    experienceType: "cultural",
+    localImpact: "Acerca familias a comercios, heladerias y emprendimientos del centro.",
+    relatedStationIds: ["manta-puerto", "tarqui"],
+    estimatedCostUsd: 2,
+    tags: ["free", "budget", "family", "children", "quiet", "park", "accessible"],
   },
 ];

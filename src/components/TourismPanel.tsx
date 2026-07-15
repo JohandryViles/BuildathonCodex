@@ -5,6 +5,8 @@ import type {
   RecommendationStatus,
   RouteRecommendation,
 } from "../types/marine";
+import { tourismAdvice } from "../domain/tourismAdvisories";
+import { TouristAssistant } from "./TouristAssistant";
 
 interface TourismPanelProps {
   recommendations: RouteRecommendation[];
@@ -58,6 +60,8 @@ export function TourismPanel({
         <p>La app prioriza accesibilidad, baja saturacion e impacto local.</p>
       </header>
 
+      <TouristAssistant recommendations={recommendations} onSelectRoute={onSelectRoute} />
+
       {mainRecommendation && (
         <button
           type="button"
@@ -103,7 +107,7 @@ export function TourismPanel({
         <div className="marine-header">
           <div>
             <h3>Alertas maritimas</h3>
-            <p>{alerts.length} activas para costa, pesca y lanchas</p>
+            <p>{alerts.length} activas que afectan playas y actividades turísticas</p>
           </div>
         </div>
 
@@ -136,6 +140,7 @@ export function TourismPanel({
                 <small>
                   Oleaje {alert.waveHeightM.toFixed(1)} m | Temp {alert.seaTemperatureC.toFixed(1)} C
                 </small>
+                <span className="audience-message">{tourismAdvice(alert, recommendations)}</span>
               </button>
             ))
           )}

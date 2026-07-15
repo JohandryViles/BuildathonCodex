@@ -126,6 +126,132 @@ body {
   font-size: 0.9rem;
 }
 
+.tourist-assistant {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.13), rgba(34, 197, 94, 0.09));
+  border: 1px solid rgba(56, 189, 248, 0.32);
+  border-radius: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding: 0.7rem;
+}
+
+.assistant-title {
+  align-items: center;
+  display: flex;
+  gap: 0.55rem;
+  margin-bottom: 0.55rem;
+}
+
+.assistant-title > span {
+  align-items: center;
+  background: #0369a1;
+  border-radius: 50%;
+  display: flex;
+  height: 1.8rem;
+  justify-content: center;
+  width: 1.8rem;
+}
+
+.assistant-title small {
+  color: #94a3b8;
+  display: block;
+  margin-top: 0.1rem;
+}
+
+.tourist-assistant form {
+  display: grid;
+  gap: 0.45rem;
+  grid-template-columns: 1fr auto;
+}
+
+.tourist-assistant textarea {
+  background: rgba(2, 6, 23, 0.72);
+  border: 1px solid #334155;
+  border-radius: 0.55rem;
+  color: #e2e8f0;
+  font: inherit;
+  padding: 0.55rem;
+  resize: vertical;
+}
+
+.tourist-assistant form button {
+  background: #0284c7;
+  border: 0;
+  border-radius: 0.55rem;
+  color: white;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 0.55rem 0.7rem;
+}
+
+.assistant-examples {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+  overflow-x: auto;
+}
+
+.assistant-examples button {
+  background: transparent;
+  border: 1px solid #334155;
+  border-radius: 999px;
+  color: #bae6fd;
+  cursor: pointer;
+  flex: 0 0 auto;
+  font-size: 0.68rem;
+  padding: 0.3rem 0.48rem;
+}
+
+.assistant-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+  max-height: 185px;
+  overflow-y: auto;
+}
+
+.assistant-results > p {
+  color: #bae6fd;
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+.assistant-results > button {
+  align-items: flex-start;
+  background: rgba(2, 6, 23, 0.65);
+  border: 1px solid #1e3a5f;
+  border-radius: 0.55rem;
+  color: #e2e8f0;
+  cursor: pointer;
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.48rem;
+  text-align: left;
+}
+
+.assistant-results > button > span {
+  align-items: center;
+  background: #166534;
+  border-radius: 50%;
+  display: flex;
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  height: 1.35rem;
+  justify-content: center;
+  width: 1.35rem;
+}
+
+.assistant-results strong,
+.assistant-results small {
+  display: block;
+}
+
+.assistant-results small {
+  color: #94a3b8;
+  line-height: 1.3;
+  margin-top: 0.15rem;
+}
+
 .panel-filters {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -170,6 +296,12 @@ body {
   padding: 0.75rem;
   text-align: left;
   width: 100%;
+}
+
+.audience-message {
+  color: #bae6fd !important;
+  font-size: 0.78rem;
+  line-height: 1.35;
 }
 
 .featured-route {
@@ -464,5 +596,9 @@ body {
 
   .app-header h1 {
     font-size: 1.55rem;
+  }
+
+  .tourist-assistant form {
+    grid-template-columns: 1fr;
   }
 }

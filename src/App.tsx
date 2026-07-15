@@ -139,7 +139,7 @@ export default function App() {
         </div>
         <div>
           <strong>{activeAlerts.length}</strong>
-          <span>alertas utiles para turismo y pesca</span>
+          <span>alertas que afectan experiencias turisticas</span>
         </div>
       </section>
 
