@@ -45,7 +45,7 @@ function LandingPage() {
       <nav className="landing-nav" aria-label="Navegación principal">
         <button className="landing-brand" onClick={() => navigate("/")}>
           <BrandMark />
-          <span>Marea IA</span>
+          <span>MarIA</span>
         </button>
         <div className="nav-links">
           <a href="#soluciones">Soluciones</a>
@@ -92,24 +92,24 @@ function LandingPage() {
       <section className="solutions-section" id="soluciones">
         <div className="section-heading">
           <p className="eyebrow">SOLUCIONES</p>
-          <h2>Informaci&oacute;n del mar<br />para decidir a tiempo.</h2>
-          <p>Centralizamos las condiciones que importan para que cada salida sea m&aacute;s segura, eficiente y previsible.</p>
+          <h2>Una plataforma para<br />trabajar y disfrutar el mar.</h2>
+          <p>MarIA conecta informaci&oacute;n marina &uacute;til con experiencias pensadas para quienes viven del mar y quienes quieren descubrirlo.</p>
         </div>
         <div className="solution-grid">
           <article>
             <span className="solution-number">01</span>
-            <h3>Condiciones del mar</h3>
-            <p>Consulta oleaje, temperatura superficial, corrientes y mareas en una misma vista del litoral.</p>
+            <h3>Profesional &amp; Pesca</h3>
+            <p>Consulta corrientes, mareas, oleaje, temperatura y alertas para planificar cada jornada con mayor seguridad.</p>
           </article>
           <article>
-            <span className="solution-number">02</span>
-            <h3>Alertas relevantes</h3>
-            <p>Identifica cambios de riesgo y prioriza los puntos que necesitan atenci&oacute;n antes de zarpar.</p>
+            <span className="solution-number">02 &middot; PR&Oacute;XIMAMENTE</span>
+            <h3>Turismo &amp; Ocio</h3>
+            <p>Encuentra mejores momentos y lugares para disfrutar la costa, planificar recorridos y vivir el mar con confianza.</p>
           </article>
           <article>
             <span className="solution-number">03</span>
-            <h3>Seguimiento horario</h3>
-            <p>Revisa la evoluci&oacute;n de las condiciones durante el d&iacute;a y planifica mejor cada jornada.</p>
+            <h3>Una sola vista</h3>
+            <p>La misma informaci&oacute;n marina se traduce en decisiones operativas y experiencias costeras m&aacute;s informadas.</p>
           </article>
         </div>
       </section>
@@ -117,28 +117,28 @@ function LandingPage() {
       <section className="how-it-works-section" id="como-funciona">
         <div className="section-heading">
           <p className="eyebrow">C&Oacute;MO FUNCIONA</p>
-          <h2>Del dato a la decisi&oacute;n,<br />en tres pasos.</h2>
+          <h2>El mar a tu medida,<br />en tres pasos.</h2>
         </div>
         <ol className="steps-list">
           <li>
             <span>1</span>
-            <div><h3>Abre el monitoreo</h3><p>Entra al mapa y elige el momento que quieres analizar.</p></div>
+            <div><h3>Elige tu experiencia</h3><p>Accede a Profesional &amp; Pesca para operar con datos o a Turismo &amp; Ocio para descubrir la costa.</p></div>
           </li>
           <li>
             <span>2</span>
-            <div><h3>Lee las condiciones</h3><p>Visualiza estaciones, variables marinas y alertas activas sobre el mapa.</p></div>
+            <div><h3>Consulta la informaci&oacute;n</h3><p>Revisa las condiciones del mar, alertas y variables relevantes para el plan que tienes.</p></div>
           </li>
           <li>
             <span>3</span>
-            <div><h3>Planifica con confianza</h3><p>Usa esta informaci&oacute;n para preparar tu ruta, faena o salida al mar.</p></div>
+            <div><h3>Planifica con confianza</h3><p>Prepara tu ruta, faena, paseo o salida al mar con informaci&oacute;n clara y oportuna.</p></div>
           </li>
         </ol>
-        <button className="how-it-works-cta" onClick={() => navigate("/monitoreo")}>Explorar el monitoreo <span>&rarr;</span></button>
+        <button className="how-it-works-cta" onClick={() => navigate("/monitoreo")}>Explorar Profesional &amp; Pesca <span>&rarr;</span></button>
       </section>
 
       <section className="landing-footer">
         <div>
-          <div className="footer-brand"><BrandMark /> Marea IA</div>
+          <div className="footer-brand"><BrandMark /> MarIA</div>
           <p>Inteligencia marina para una relación más segura, consciente y sostenible con el océano.</p>
         </div>
         <div>
@@ -149,7 +149,7 @@ function LandingPage() {
         <div>
           <strong>CONTACTO</strong>
           <a href="mailto:mareaia@gmail.com">hola@mareaia.com</a>
-          <span>© 2026 Marea IA</span>
+          <span>© 2026 MarIA</span>
         </div>
       </section>
     </main>
@@ -159,7 +159,7 @@ function LandingPage() {
 function ComingSoonPage() {
   return (
     <main className="coming-soon-page">
-      <button className="back-home" onClick={() => navigate("/")}>← Volver a Marea IA</button>
+      <button className="back-home" onClick={() => navigate("/")}>← Volver a MarIA</button>
       <section className="coming-soon-card">
         <BrandMark />
         <p className="eyebrow">TURISMO &amp; OCIO</p>
@@ -252,7 +252,7 @@ function MarineDashboard() {
     <main className="app-shell">
       <section className="app-header">
         <div>
-          <button className="dashboard-back" onClick={() => navigate("/")}>← Marea IA</button>
+          <button className="dashboard-back" onClick={() => navigate("/")}>← MarIA</button>
           <h1>Centro de Alertas Marinas</h1>
           <p>Monitoreo de temperatura superficial del mar y oleaje por estaciones costeras.</p>
         </div>
