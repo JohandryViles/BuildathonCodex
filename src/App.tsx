@@ -41,7 +41,156 @@ function resolveNoticePointId(
     : undefined;
 }
 
-export default function App() {
+type Route = "/" | "/monitoreo" | "/turismo";
+
+function navigate(path: Route) {
+  window.history.pushState({}, "", path);
+  window.dispatchEvent(new PopStateEvent("popstate"));
+}
+
+function BrandMark() {
+  return (
+    <span className="brand-mark" aria-hidden="true">
+      <i />
+      <i />
+      <i />
+    </span>
+  );
+}
+
+function LandingPage() {
+  return (
+    <main className="landing-page">
+      <nav className="landing-nav" aria-label="Navegación principal">
+        <button className="landing-brand" onClick={() => navigate("/")}>
+          <BrandMark />
+          <span>Marea IA</span>
+        </button>
+        <div className="nav-links">
+          <a href="#soluciones">Soluciones</a>
+          <a href="#como-funciona">Cómo funciona</a>
+        </div>
+        <button className="nav-access" onClick={() => navigate("/monitoreo")}>
+          Acceder al mapa <span>→</span>
+        </button>
+      </nav>
+
+      <section className="landing-hero">
+        <div className="hero-intro">
+          <p className="eyebrow">INTELIGENCIA PARA EL OCÉANO</p>
+          <h1>El mar cambia.<br />Tus decisiones, no.</h1>
+          <p>Datos marinos claros para navegar, pescar y descubrir con mayor seguridad.</p>
+        </div>
+
+        <div className="experience-card">
+          <BrandMark />
+          <p className="eyebrow">SELECCIONA TU EXPERIENCIA</p>
+          <h2>Una misma costa,<br />dos formas de vivirla.</h2>
+          <span>Información precisa para cada travesía.</span>
+        </div>
+
+        <article className="experience-tile work-tile">
+          <div className="tile-content">
+            <span className="tile-kicker">DATOS EN TIEMPO REAL</span>
+            <h2>Profesional<br />&amp; Pesca</h2>
+            <p>Corrientes, mareas, oleaje y alertas para tomar decisiones con confianza.</p>
+            <button onClick={() => navigate("/monitoreo")}>Ver monitoreo <span>↗</span></button>
+          </div>
+        </article>
+
+        <article className="experience-tile leisure-tile">
+          <div className="tile-content">
+            <span className="tile-kicker">PRÓXIMAMENTE</span>
+            <h2>Turismo<br />&amp; Ocio</h2>
+            <p>Planifica experiencias inolvidables junto al mar.</p>
+            <button onClick={() => navigate("/turismo")}>Descubrir <span>↗</span></button>
+          </div>
+        </article>
+      </section>
+
+      <section className="solutions-section" id="soluciones">
+        <div className="section-heading">
+          <p className="eyebrow">SOLUCIONES</p>
+          <h2>Informaci&oacute;n del mar<br />para decidir a tiempo.</h2>
+          <p>Centralizamos las condiciones que importan para que cada salida sea m&aacute;s segura, eficiente y previsible.</p>
+        </div>
+        <div className="solution-grid">
+          <article>
+            <span className="solution-number">01</span>
+            <h3>Condiciones del mar</h3>
+            <p>Consulta oleaje, temperatura superficial, corrientes y mareas en una misma vista del litoral.</p>
+          </article>
+          <article>
+            <span className="solution-number">02</span>
+            <h3>Alertas relevantes</h3>
+            <p>Identifica cambios de riesgo y prioriza los puntos que necesitan atenci&oacute;n antes de zarpar.</p>
+          </article>
+          <article>
+            <span className="solution-number">03</span>
+            <h3>Seguimiento horario</h3>
+            <p>Revisa la evoluci&oacute;n de las condiciones durante el d&iacute;a y planifica mejor cada jornada.</p>
+          </article>
+        </div>
+      </section>
+
+      <section className="how-it-works-section" id="como-funciona">
+        <div className="section-heading">
+          <p className="eyebrow">C&Oacute;MO FUNCIONA</p>
+          <h2>Del dato a la decisi&oacute;n,<br />en tres pasos.</h2>
+        </div>
+        <ol className="steps-list">
+          <li>
+            <span>1</span>
+            <div><h3>Abre el monitoreo</h3><p>Entra al mapa y elige el momento que quieres analizar.</p></div>
+          </li>
+          <li>
+            <span>2</span>
+            <div><h3>Lee las condiciones</h3><p>Visualiza estaciones, variables marinas y alertas activas sobre el mapa.</p></div>
+          </li>
+          <li>
+            <span>3</span>
+            <div><h3>Planifica con confianza</h3><p>Usa esta informaci&oacute;n para preparar tu ruta, faena o salida al mar.</p></div>
+          </li>
+        </ol>
+        <button className="how-it-works-cta" onClick={() => navigate("/monitoreo")}>Explorar el monitoreo <span>&rarr;</span></button>
+      </section>
+
+      <section className="landing-footer">
+        <div>
+          <div className="footer-brand"><BrandMark /> Marea IA</div>
+          <p>Inteligencia marina para una relación más segura, consciente y sostenible con el océano.</p>
+        </div>
+        <div>
+          <strong>PLATAFORMA</strong>
+          <a href="#soluciones">Monitoreo marítimo</a>
+          <a href="#soluciones">Información costera</a>
+        </div>
+        <div>
+          <strong>CONTACTO</strong>
+          <a href="mailto:mareaia@gmail.com">hola@mareaia.com</a>
+          <span>© 2026 Marea IA</span>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function ComingSoonPage() {
+  return (
+    <main className="coming-soon-page">
+      <button className="back-home" onClick={() => navigate("/")}>← Volver a Marea IA</button>
+      <section className="coming-soon-card">
+        <BrandMark />
+        <p className="eyebrow">TURISMO &amp; OCIO</p>
+        <h1>Muy pronto.</h1>
+        <p>Estamos preparando la mejor forma de descubrir y planificar tus experiencias en la costa.</p>
+        <button onClick={() => navigate("/")}>Conocer el monitoreo</button>
+      </section>
+    </main>
+  );
+}
+
+function MarineDashboard() {
   const [frames, setFrames] = useState<MarinePoint[][]>([]);
   const [times, setTimes] = useState<string[]>([]);
   const [selectedHour, setSelectedHour] = useState(0);
@@ -165,6 +314,7 @@ export default function App() {
     <main className="app-shell">
       <section className="app-header">
         <div>
+          <button className="dashboard-back" onClick={() => navigate("/")}>← Marea IA</button>
           <h1>Centro de Alertas Marinas</h1>
           <p>Monitoreo de temperatura superficial del mar y oleaje por estaciones costeras.</p>
         </div>
@@ -246,4 +396,24 @@ export default function App() {
       />
     </main>
   );
+}
+
+export default function App() {
+  const [route, setRoute] = useState<Route>(() => {
+    const path = window.location.pathname as Route;
+    return ["/", "/monitoreo", "/turismo"].includes(path) ? path : "/";
+  });
+
+  useEffect(() => {
+    const updateRoute = () => {
+      const path = window.location.pathname as Route;
+      setRoute(["/", "/monitoreo", "/turismo"].includes(path) ? path : "/");
+    };
+    window.addEventListener("popstate", updateRoute);
+    return () => window.removeEventListener("popstate", updateRoute);
+  }, []);
+
+  if (route === "/monitoreo") return <MarineDashboard />;
+  if (route === "/turismo") return <ComingSoonPage />;
+  return <LandingPage />;
 }
