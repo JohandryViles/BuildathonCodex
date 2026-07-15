@@ -11,21 +11,10 @@ const GLOBAL_FIELD_SOURCE_ID = "global-marine-field-source";
 const TEMP_FIELD_LAYER_ID = "global-temp-layer";
 const WAVE_FIELD_LAYER_ID = "global-wave-layer";
 const LAND_MASK_LAYER_ID = "global-land-mask-layer";
-const WAVE_LAYER_ID = "marine-wave-layer";
+const COAST_SURF_LAYER_ID = "coast-surf-layer";
 const LAYER_ID = "marine-alerts-layer";
 const USER_LOCATION_RADIUS_KM = 100;
 const GRID_STEP_DEGREES = 2;
-const WAVE_BASE_RADIUS_EXPRESSION: maplibregl.ExpressionSpecification = [
-  "interpolate",
-  ["linear"],
-  ["get", "waveHeightM"],
-  0.5,
-  10,
-  2.5,
-  18,
-  5,
-  28,
-];
 const ALERT_BASE_RADIUS_EXPRESSION: maplibregl.ExpressionSpecification = [
   "interpolate",
   ["linear"],
@@ -74,16 +63,38 @@ function setLayerVisibility(map: Map, layerId: string, isVisible: boolean) {
   map.setLayoutProperty(layerId, "visibility", isVisible ? "visible" : "none");
 }
 
-function getFlowVector(lng: number, lat: number, timeSec: number): [number, number] {
-  const u =
+type CurrentMode = "current1" | "counter2" | "counter3";
+
+function getFlowVector(
+  lng: number,
+  lat: number,
+  timeSec: number,
+  mode: CurrentMode,
+): [number, number] {
+  const baseU =
     Math.sin(lat * 0.2 + timeSec * 0.05) +
     0.6 * Math.cos(lng * 0.13 - timeSec * 0.03) +
     0.35 * Math.sin((lng + lat) * 0.08 + timeSec * 0.07);
-  const v =
+  const baseV =
     Math.cos(lng * 0.18 - timeSec * 0.04) -
     0.5 * Math.sin(lat * 0.15 + timeSec * 0.05) +
     0.35 * Math.cos((lng - lat) * 0.09 - timeSec * 0.06);
-  return [u, v];
+
+  if (mode === "counter2") {
+    return [
+      -baseU * 0.95 + 0.35 * Math.cos((lng - lat) * 0.07 + timeSec * 0.09),
+      -baseV * 0.85 + 0.35 * Math.sin((lng + lat) * 0.06 - timeSec * 0.08),
+    ];
+  }
+
+  if (mode === "counter3") {
+    return [
+      baseV * 0.9 + 0.5 * Math.sin(lat * 0.22 - timeSec * 0.06),
+      -baseU * 0.9 + 0.5 * Math.cos(lng * 0.2 + timeSec * 0.05),
+    ];
+  }
+
+  return [baseU, baseV];
 }
 
 interface MarineFieldProperties {
@@ -217,6 +228,7 @@ export function MapView({
   const [showTemperature, setShowTemperature] = useState(true);
   const [showWave, setShowWave] = useState(true);
   const [showFlow, setShowFlow] = useState(true);
+  const [currentMode, setCurrentMode] = useState<CurrentMode>("current1");
   const [showStations, setShowStations] = useState(true);
 
   onPointSelectRef.current = onPointSelect;
@@ -345,34 +357,32 @@ export function MapView({
           },
           layerAnchorId,
         );
+
+        map.addLayer(
+          {
+            id: COAST_SURF_LAYER_ID,
+            type: "line",
+            source: "maplibre",
+            "source-layer": "countries",
+            layout: {
+              "line-cap": "round",
+              "line-join": "round",
+            },
+            paint: {
+              "line-color": "#e0f2fe",
+              "line-width": 0.8,
+              "line-opacity": 0.14,
+              "line-blur": 0.4,
+              "line-dasharray": [1.2, 1.6],
+            },
+          },
+          layerAnchorId,
+        );
       }
 
       map.addSource(SOURCE_ID, {
         type: "geojson",
         data: toGeoJson([]),
-      });
-
-      map.addLayer({
-        id: WAVE_LAYER_ID,
-        type: "circle",
-        source: SOURCE_ID,
-        paint: {
-          "circle-color": [
-            "interpolate",
-            ["linear"],
-            ["get", "waveHeightM"],
-            0.5,
-            "#93c5fd",
-            2.5,
-            "#3b82f6",
-            5,
-            "#1d4ed8",
-          ],
-          "circle-radius": WAVE_BASE_RADIUS_EXPRESSION,
-          "circle-opacity": 0.22,
-          "circle-stroke-width": 0,
-          "circle-blur": 0.2,
-        },
       });
 
       map.addLayer({
@@ -399,24 +409,18 @@ export function MapView({
       });
 
       const animateWave = (time: number) => {
-        if (map.getLayer(WAVE_LAYER_ID)) {
-          const cycle = (time % 2200) / 2200;
-          const radiusExpansion = cycle * 14;
-          const pulseOpacity = 0.04 + (1 - cycle) * 0.24;
-          const pulseBlur = 0.2 + cycle * 0.65;
-
-          map.setPaintProperty(WAVE_LAYER_ID, "circle-radius", [
-            "+",
-            WAVE_BASE_RADIUS_EXPRESSION,
-            radiusExpansion,
-          ]);
-          map.setPaintProperty(WAVE_LAYER_ID, "circle-opacity", pulseOpacity);
-          map.setPaintProperty(WAVE_LAYER_ID, "circle-blur", pulseBlur);
-        }
-
         if (map.getLayer(WAVE_FIELD_LAYER_ID)) {
           const animatedOpacity = 0.38 + 0.12 * (Math.sin(time / 980) + 1) / 2;
           map.setPaintProperty(WAVE_FIELD_LAYER_ID, "fill-opacity", animatedOpacity);
+        }
+        if (map.getLayer(COAST_SURF_LAYER_ID)) {
+          const coastPulse = 0.08 + 0.24 * (Math.sin(time / 620) + 1) / 2;
+          map.setPaintProperty(COAST_SURF_LAYER_ID, "line-opacity", coastPulse);
+          map.setPaintProperty(COAST_SURF_LAYER_ID, "line-width", 0.5 + coastPulse * 3.2);
+          map.setPaintProperty(COAST_SURF_LAYER_ID, "line-dasharray", [
+            1 + coastPulse * 3,
+            1.8,
+          ]);
         }
 
         waveAnimationFrameRef.current = requestAnimationFrame(animateWave);
@@ -593,10 +597,8 @@ export function MapView({
 
     if (filter === "all") {
       map.setFilter(LAYER_ID, null);
-      map.setFilter(WAVE_LAYER_ID, null);
     } else {
       map.setFilter(LAYER_ID, ["==", ["get", "level"], filter]);
-      map.setFilter(WAVE_LAYER_ID, ["==", ["get", "level"], filter]);
     }
 
     map.setPaintProperty(LAYER_ID, "circle-radius", [
@@ -619,7 +621,7 @@ export function MapView({
 
     setLayerVisibility(map, TEMP_FIELD_LAYER_ID, showTemperature);
     setLayerVisibility(map, WAVE_FIELD_LAYER_ID, showWave);
-    setLayerVisibility(map, WAVE_LAYER_ID, showStations && showWave);
+    setLayerVisibility(map, COAST_SURF_LAYER_ID, showWave);
     setLayerVisibility(map, LAYER_ID, showStations);
     setLayerVisibility(map, LAND_MASK_LAYER_ID, showTemperature || showWave);
   }, [showTemperature, showWave, showStations]);
@@ -732,9 +734,10 @@ export function MapView({
       ctx.strokeStyle = "rgba(176, 190, 210, 0.42)";
       ctx.beginPath();
 
+      const coastHits: Array<[number, number, number, number]> = [];
       for (const particle of particles) {
         const start = map.project([particle.lng, particle.lat]);
-        const [fu, fv] = getFlowVector(particle.lng, particle.lat, timeSec);
+        const [fu, fv] = getFlowVector(particle.lng, particle.lat, timeSec, currentMode);
         const magnitude = Math.hypot(fu, fv) || 0.0001;
         const probe = map.project([
           particle.lng + (fu / magnitude) * 0.5,
@@ -751,6 +754,13 @@ export function MapView({
         const nextX = start.x + dx * speedPx;
         const nextY = start.y + dy * speedPx;
         const nextLngLat = map.unproject([nextX, nextY]);
+        const hitsLand = !isOcean(nextLngLat.lng, nextLngLat.lat);
+
+        if (hitsLand) {
+          coastHits.push([start.x, start.y, dx, dy]);
+          respawn(particle, false);
+          continue;
+        }
 
         ctx.moveTo(start.x, start.y);
         ctx.lineTo(nextX, nextY);
@@ -771,6 +781,16 @@ export function MapView({
       }
 
       ctx.stroke();
+      if (coastHits.length > 0) {
+        ctx.beginPath();
+        for (const [x, y, dx, dy] of coastHits) {
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + dx * 4.5, y + dy * 4.5);
+        }
+        ctx.lineWidth = 1.6;
+        ctx.strokeStyle = "rgba(226, 242, 255, 0.62)";
+        ctx.stroke();
+      }
       rafId = requestAnimationFrame(step);
     };
 
@@ -793,7 +813,7 @@ export function MapView({
       resizeObserver.disconnect();
       ctx.clearRect(0, 0, width, height);
     };
-  }, [mapReady, showFlow]);
+  }, [mapReady, showFlow, currentMode]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -863,6 +883,38 @@ export function MapView({
               />
               Corrientes (estelas)
             </label>
+            <div className="overlay-current-mode" role="radiogroup" aria-label="Modo de corriente">
+              <label>
+                <input
+                  type="radio"
+                  name="current-mode"
+                  value="current1"
+                  checked={currentMode === "current1"}
+                  onChange={() => setCurrentMode("current1")}
+                />
+                Corriente 1
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="current-mode"
+                  value="counter2"
+                  checked={currentMode === "counter2"}
+                  onChange={() => setCurrentMode("counter2")}
+                />
+                Contracorriente 2
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="current-mode"
+                  value="counter3"
+                  checked={currentMode === "counter3"}
+                  onChange={() => setCurrentMode("counter3")}
+                />
+                Contracorriente 3
+              </label>
+            </div>
 
             <label className="overlay-toggle">
               <input

@@ -331,6 +331,28 @@ body {
   accent-color: #38bdf8;
 }
 
+.overlay-current-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: 0.55rem;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.overlay-current-mode label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #bfdbfe;
+  font-size: 0.76rem;
+}
+
+.overlay-current-mode input {
+  accent-color: #38bdf8;
+}
+
 .map-scale-legend {
   position: absolute;
   left: 50%;
