@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { MapView } from "./components/MapView";
 import { TourismPanel } from "./components/TourismPanel";
+import { AccessibilityToolbar } from "./components/AccessibilityToolbar";
 import { createMarineDataProvider } from "./data/createProvider";
 import { TOURISM_ROUTES } from "./data/tourismRoutes";
 import { evaluateAlerts } from "./domain/alerts";
@@ -21,6 +22,20 @@ export default function App() {
   const [filter, setFilter] = useState<AlertFilter>("all");
   const [selectedPointId, setSelectedPointId] = useState<string | null>(null);
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
+  const [largeText, setLargeText] = useState(
+    () => window.localStorage.getItem("manta-large-text") === "true",
+  );
+  const [highContrast, setHighContrast] = useState(
+    () => window.localStorage.getItem("manta-high-contrast") === "true",
+  );
+
+  useEffect(() => {
+    window.localStorage.setItem("manta-large-text", String(largeText));
+  }, [largeText]);
+
+  useEffect(() => {
+    window.localStorage.setItem("manta-high-contrast", String(highContrast));
+  }, [highContrast]);
 
   useEffect(() => {
     let isMounted = true;
@@ -105,21 +120,33 @@ export default function App() {
     }
   }, [recommendations, selectedRouteId]);
 
+  const accessibilityClasses = [largeText ? "large-text" : "", highContrast ? "high-contrast" : ""]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <main className="app-shell">
-      <section className="app-header">
+    <div className={accessibilityClasses}>
+      <a className="skip-link" href="#main-content">Saltar al contenido principal</a>
+      <AccessibilityToolbar
+        largeText={largeText}
+        highContrast={highContrast}
+        onLargeTextChange={setLargeText}
+        onHighContrastChange={setHighContrast}
+      />
+      <main className="app-shell" id="main-content" tabIndex={-1}>
+      <section className="app-header" aria-labelledby="page-title">
         <div>
-          <span className="eyebrow">Manta, Manabi</span>
-          <h1>Manta Inteligente</h1>
+          <span className="eyebrow">Manta, Manabí · Ecuador</span>
+          <h1 id="page-title">Manta Inteligente</h1>
           <p>
-            Rutas accesibles y culturales recomendadas con alertas maritimas en tiempo real.
+            Descubre rutas accesibles, cultura local y playas seguras con información marítima actualizada.
           </p>
         </div>
-        <div className="status-box">
+        <div className="status-box" role="status" aria-live="polite">
           <strong>{recommendations.length} rutas activas</strong>
-          <span>{activeAlerts.length} alertas maritimas activas</span>
+          <span>{activeAlerts.length} alertas marítimas activas</span>
           <span>{lowDemandRoutes} rutas ayudan a distribuir demanda local</span>
-          <span>Ultima actualizacion: {lastUpdateLabel(points)}</span>
+          <span>Última actualización: {lastUpdateLabel(points)}</span>
           <span>{isLoading ? "Cargando datos..." : "Datos reales: Open-Meteo Marine API"}</span>
         </div>
       </section>
@@ -143,7 +170,7 @@ export default function App() {
         </div>
       </section>
 
-      <section className="content-layout">
+      <section className="content-layout" aria-label="Planificador turístico y mapa de Manta">
         <TourismPanel
           recommendations={recommendations}
           alerts={filteredAlerts}
@@ -165,6 +192,7 @@ export default function App() {
           onPointSelect={setSelectedPointId}
         />
       </section>
-    </main>
+      </main>
+    </div>
   );
 }

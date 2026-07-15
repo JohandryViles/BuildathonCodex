@@ -986,8 +986,16 @@ export function MapView({
   }, [alerts, selectedPointId]);
 
   return (
-    <div className="map-wrapper">
-      <div className="map-root" ref={mapContainerRef} />
+    <div className="map-wrapper" role="region" aria-label="Mapa turístico interactivo de Manta">
+      <p className="sr-only" aria-live="polite">
+        El mapa muestra {recommendations.length} rutas turísticas y {alerts.length} puntos con condiciones marítimas.
+      </p>
+      <div
+        className="map-root"
+        ref={mapContainerRef}
+        tabIndex={0}
+        aria-label="Mapa con calles, lugares turísticos, playas y alertas de Manta"
+      />
       <canvas className="flow-canvas" ref={flowCanvasRef} aria-hidden="true" />
       <section
         className={`map-overlay-panel${isPanelOpen ? "" : " collapsed"}`}

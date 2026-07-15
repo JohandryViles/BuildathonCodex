@@ -12,6 +12,14 @@ const EXAMPLES = [
   "Viajo con niños y queremos visitar parques",
 ];
 
+const QUICK_PREFERENCES = [
+  { label: "Bajo presupuesto", query: "Tengo poco dinero y busco opciones económicas" },
+  { label: "Familia con niños", query: "Viajo con mi familia y niños" },
+  { label: "Playa tranquila", query: "Quiero una playa tranquila con poca gente" },
+  { label: "Parques", query: "Quiero conocer parques y espacios verdes" },
+  { label: "Accesible", query: "Necesito lugares accesibles para movilidad reducida" },
+];
+
 export function TouristAssistant({ recommendations, onSelectRoute }: TouristAssistantProps) {
   const [request, setRequest] = useState("");
   const [query, setQuery] = useState("");
@@ -25,16 +33,25 @@ export function TouristAssistant({ recommendations, onSelectRoute }: TouristAssi
   }
 
   return (
-    <section className="tourist-assistant">
+    <section className="tourist-assistant" aria-labelledby="assistant-title">
       <div className="assistant-title">
         <span aria-hidden="true">✦</span>
         <div>
-          <strong>¿Qué quieres hacer en Manta?</strong>
+          <strong id="assistant-title">¿Qué quieres hacer en Manta?</strong>
           <small>Describe tu presupuesto, compañía e intereses.</small>
         </div>
       </div>
+      <div className="quick-preferences" aria-label="Preferencias rápidas">
+        {QUICK_PREFERENCES.map((preference) => (
+          <button type="button" key={preference.label} onClick={() => submit(preference.query)}>
+            {preference.label}
+          </button>
+        ))}
+      </div>
       <form onSubmit={(event) => { event.preventDefault(); submit(request); }}>
+        <label className="sr-only" htmlFor="tourist-request">Cuéntanos qué tipo de experiencia buscas</label>
         <textarea
+          id="tourist-request"
           value={request}
           onChange={(event) => setRequest(event.target.value)}
           placeholder="Ej.: Tengo $10, viajo con niños y busco un lugar tranquilo..."
@@ -51,7 +68,10 @@ export function TouristAssistant({ recommendations, onSelectRoute }: TouristAssi
       )}
       {matches.length > 0 && (
         <div className="assistant-results" aria-live="polite">
-          <p>Estas opciones encajan mejor contigo:</p>
+          <div className="assistant-results-heading">
+            <p>Estas opciones encajan mejor contigo:</p>
+            <button type="button" onClick={() => { setQuery(""); setRequest(""); }}>Nueva búsqueda</button>
+          </div>
           {matches.map(({ recommendation, explanation }, index) => (
             <button
               type="button"
