@@ -244,6 +244,7 @@ export function MapView({
   const waveAnimationFrameRef = useRef<number | null>(null);
   const globalFieldIntervalRef = useRef<number | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  const [mapStatus, setMapStatus] = useState<"loading" | "ready" | "error">("loading");
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [showRoutes, setShowRoutes] = useState(true);
   const [showTemperature, setShowTemperature] = useState(false);
@@ -271,6 +272,10 @@ export function MapView({
       center: [-80.735, -0.965],
       zoom: 12.4,
       minZoom: 9,
+    });
+
+    map.on("error", () => {
+      if (!map.isStyleLoaded()) setMapStatus("error");
     });
 
     map.addControl(new maplibregl.NavigationControl({ showCompass: true }), "top-right");
@@ -365,8 +370,11 @@ export function MapView({
         layerAnchorId,
       );
 
-      const countriesFillColor = map.getPaintProperty("countries-fill", "fill-color");
-      if (countriesFillColor && map.getSource("maplibre")) {
+      const countriesLayer = map.getLayer("countries-fill");
+      const countriesFillColor = countriesLayer
+        ? map.getPaintProperty("countries-fill", "fill-color")
+        : undefined;
+      if (countriesLayer && countriesFillColor && map.getSource("maplibre")) {
         map.addLayer(
           {
             id: LAND_MASK_LAYER_ID,
@@ -608,18 +616,17 @@ export function MapView({
           return;
         }
 
-        const landHit = map.queryRenderedFeatures(event.point, {
-          layers: [LAND_MASK_LAYER_ID, "countries-fill"].filter((id) =>
-            map.getLayer(id),
-          ),
-        });
+        const waterLayers = ["water"].filter((id) => map.getLayer(id));
+        const isWater =
+          waterLayers.length > 0 &&
+          map.queryRenderedFeatures(event.point, { layers: waterLayers }).length > 0;
 
         const lngLat = event.lngLat;
         const popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true })
           .setLngLat(lngLat)
           .addTo(map);
 
-        if (landHit.length > 0) {
+        if (!isWater) {
           popup.setHTML(
             "<strong>Punto en tierra</strong><br/>Selecciona un punto en el mar para ver sus condiciones.",
           );
@@ -680,6 +687,7 @@ export function MapView({
       });
 
       setMapReady(true);
+      setMapStatus("ready");
     });
 
     mapRef.current = map;
@@ -696,6 +704,7 @@ export function MapView({
       map.remove();
       mapRef.current = null;
       setMapReady(false);
+      setMapStatus("loading");
     };
   }, []);
 
@@ -774,7 +783,7 @@ export function MapView({
     setLayerVisibility(map, ROUTE_LAYER_ID, showRoutes);
     setLayerVisibility(map, ROUTE_HALO_LAYER_ID, showRoutes);
     setLayerVisibility(map, LAND_MASK_LAYER_ID, showTemperature || showWave);
-  }, [showTemperature, showWave, showStations, showRoutes]);
+  }, [mapReady, showTemperature, showWave, showStations, showRoutes]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -817,16 +826,12 @@ export function MapView({
       maxAge: number;
     }
 
-    const landLayers = [LAND_MASK_LAYER_ID, "countries-fill"].filter((id) =>
-      map.getLayer(id),
-    );
+    const waterLayers = ["water"].filter((id) => map.getLayer(id));
 
     const isOcean = (lng: number, lat: number) => {
-      if (landLayers.length === 0) {
-        return true;
-      }
+      if (waterLayers.length === 0) return false;
       const projected = map.project([lng, lat]);
-      return map.queryRenderedFeatures(projected, { layers: landLayers }).length === 0;
+      return map.queryRenderedFeatures(projected, { layers: waterLayers }).length > 0;
     };
 
     const respawn = (particle: FlowParticle, randomizeAge: boolean) => {
@@ -996,6 +1001,19 @@ export function MapView({
         tabIndex={0}
         aria-label="Mapa con calles, lugares turísticos, playas y alertas de Manta"
       />
+      {mapStatus !== "ready" && (
+        <div className={`map-loading-state ${mapStatus}`} role="status" aria-live="polite">
+          <span aria-hidden="true">{mapStatus === "error" ? "!" : "⌖"}</span>
+          <div>
+            <strong>{mapStatus === "error" ? "No se pudo cargar el mapa" : "Cargando mapa de Manta"}</strong>
+            <small>
+              {mapStatus === "error"
+                ? "Revisa tu conexión y vuelve a cargar la página."
+                : "Preparando calles, avenidas y lugares turísticos..."}
+            </small>
+          </div>
+        </div>
+      )}
       <canvas className="flow-canvas" ref={flowCanvasRef} aria-hidden="true" />
       <section
         className={`map-overlay-panel${isPanelOpen ? "" : " collapsed"}`}
