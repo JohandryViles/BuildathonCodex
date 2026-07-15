@@ -205,10 +205,43 @@ body {
   gap: 0.55rem;
 }
 
-.map-overlay-panel h3 {
-  margin: 0;
-  font-size: 0.92rem;
+.map-overlay-panel.collapsed {
+  gap: 0;
+}
+
+.overlay-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
   color: #dbeafe;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.overlay-panel-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: rgba(56, 189, 248, 0.18);
+  color: #7dd3fc;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.overlay-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-top: 0.55rem;
 }
 
 .overlay-toggle {

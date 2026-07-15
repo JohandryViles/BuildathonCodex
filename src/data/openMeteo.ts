@@ -24,6 +24,45 @@ function parseApiTime(time: string | undefined, fallbackIso: string): string {
   return Number.isNaN(parsed.getTime()) ? fallbackIso : parsed.toISOString();
 }
 
+export interface MarineConditions {
+  seaTemperatureC: number | null;
+  waveHeightM: number | null;
+  wavePeriodS: number | null;
+  waveDirectionDeg: number | null;
+  updatedAt: string;
+}
+
+interface OpenMeteoPointCurrent extends OpenMeteoCurrent {
+  wave_period?: number | null;
+  wave_direction?: number | null;
+}
+
+export async function fetchMarineConditions(
+  lng: number,
+  lat: number,
+): Promise<MarineConditions> {
+  const nowIso = new Date().toISOString();
+  const url =
+    `${MARINE_API_URL}?latitude=${lat.toFixed(4)}&longitude=${lng.toFixed(4)}` +
+    `&current=wave_height,sea_surface_temperature,wave_period,wave_direction`;
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Open-Meteo respondio ${response.status}`);
+  }
+
+  const payload = (await response.json()) as { current?: OpenMeteoPointCurrent };
+  const current = payload.current;
+
+  return {
+    seaTemperatureC: current?.sea_surface_temperature ?? null,
+    waveHeightM: current?.wave_height ?? null,
+    wavePeriodS: current?.wave_period ?? null,
+    waveDirectionDeg: current?.wave_direction ?? null,
+    updatedAt: parseApiTime(current?.time, nowIso),
+  };
+}
+
 function buildFallbackPoints(updatedAt: string): MarinePoint[] {
   return MARINE_STATIONS.map((station) => ({
     id: station.id,

@@ -3,7 +3,8 @@ import maplibregl, { type Map } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { FeatureCollection, Point, Polygon } from "geojson";
 import type { AlertFilter, MarineAlert } from "../types/marine";
-import { TEMPERATURE_THRESHOLDS, WAVE_THRESHOLDS } from "../domain/alerts";
+import { TEMPERATURE_THRESHOLDS, WAVE_THRESHOLDS, evaluateMarinePoint } from "../domain/alerts";
+import { fetchMarineConditions } from "../data/openMeteo";
 
 const SOURCE_ID = "marine-alerts-source";
 const GLOBAL_FIELD_SOURCE_ID = "global-marine-field-source";
@@ -201,6 +202,7 @@ export function MapView({
   const waveAnimationFrameRef = useRef<number | null>(null);
   const globalFieldIntervalRef = useRef<number | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [showTemperature, setShowTemperature] = useState(true);
   const [showWave, setShowWave] = useState(true);
   const [showFlow, setShowFlow] = useState(true);
@@ -455,6 +457,92 @@ export function MapView({
 
       map.on("mouseleave", LAYER_ID, () => {
         map.getCanvas().style.cursor = "";
+      });
+
+      const seaLevelLabel = (level: string) => {
+        if (level === "danger") return "Peligro";
+        if (level === "warning") return "Alerta";
+        if (level === "watch") return "Vigilancia";
+        return "Estable";
+      };
+
+      map.on("click", (event) => {
+        const stationHit = map.queryRenderedFeatures(event.point, {
+          layers: [LAYER_ID],
+        });
+        if (stationHit.length > 0) {
+          return;
+        }
+
+        const landHit = map.queryRenderedFeatures(event.point, {
+          layers: [LAND_MASK_LAYER_ID, "countries-fill"].filter((id) =>
+            map.getLayer(id),
+          ),
+        });
+
+        const lngLat = event.lngLat;
+        const popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true })
+          .setLngLat(lngLat)
+          .addTo(map);
+
+        if (landHit.length > 0) {
+          popup.setHTML(
+            "<strong>Punto en tierra</strong><br/>Selecciona un punto en el mar para ver sus condiciones.",
+          );
+          return;
+        }
+
+        popup.setHTML(
+          `<strong>Consultando el mar...</strong><br/>` +
+            `Lat ${lngLat.lat.toFixed(2)}, Lng ${lngLat.lng.toFixed(2)}`,
+        );
+
+        fetchMarineConditions(lngLat.lng, lngLat.lat)
+          .then((conditions) => {
+            if (
+              conditions.waveHeightM === null &&
+              conditions.seaTemperatureC === null
+            ) {
+              popup.setHTML(
+                "<strong>Sin datos marinos</strong><br/>Este punto no tiene cobertura del modelo marino.",
+              );
+              return;
+            }
+
+            const temp = conditions.seaTemperatureC ?? 0;
+            const wave = conditions.waveHeightM ?? 0;
+            const evaluated = evaluateMarinePoint({
+              id: "sea-click",
+              stationName: "Punto seleccionado",
+              coordinates: [lngLat.lng, lngLat.lat],
+              seaTemperatureC: temp,
+              waveHeightM: wave,
+              updatedAt: conditions.updatedAt,
+            });
+
+            const period =
+              conditions.wavePeriodS !== null
+                ? `${conditions.wavePeriodS.toFixed(1)} s`
+                : "n/d";
+            const direction =
+              conditions.waveDirectionDeg !== null
+                ? `${Math.round(conditions.waveDirectionDeg)} grados`
+                : "n/d";
+
+            popup.setHTML(
+              `<strong>Punto marino</strong><br/>` +
+                `Estado: ${seaLevelLabel(evaluated.level)}<br/>` +
+                `Temp: ${temp.toFixed(1)} C<br/>` +
+                `Oleaje: ${wave.toFixed(1)} m<br/>` +
+                `Periodo: ${period}<br/>` +
+                `Direccion: ${direction}`,
+            );
+          })
+          .catch(() => {
+            popup.setHTML(
+              "<strong>Error</strong><br/>No se pudieron obtener las condiciones marinas.",
+            );
+          });
       });
 
       setMapReady(true);
@@ -716,59 +804,76 @@ export function MapView({
     <div className="map-wrapper">
       <div className="map-root" ref={mapContainerRef} />
       <canvas className="flow-canvas" ref={flowCanvasRef} aria-hidden="true" />
-      <section className="map-overlay-panel" aria-label="Capas de visualizacion marina">
-        <h3>Visualizacion del mar</h3>
+      <section
+        className={`map-overlay-panel${isPanelOpen ? "" : " collapsed"}`}
+        aria-label="Capas de visualizacion marina"
+      >
+        <button
+          type="button"
+          className="overlay-panel-header"
+          aria-expanded={isPanelOpen}
+          onClick={() => setIsPanelOpen((open) => !open)}
+        >
+          <span>Visualizacion del mar</span>
+          <span className="overlay-panel-chevron" aria-hidden="true">
+            {isPanelOpen ? "\u2212" : "+"}
+          </span>
+        </button>
 
-        <label className="overlay-toggle">
-          <input
-            type="checkbox"
-            checked={showTemperature}
-            onChange={(event) => setShowTemperature(event.target.checked)}
-          />
-          Temperatura del mar
-        </label>
+        {isPanelOpen && (
+          <div className="overlay-panel-body">
+            <label className="overlay-toggle">
+              <input
+                type="checkbox"
+                checked={showTemperature}
+                onChange={(event) => setShowTemperature(event.target.checked)}
+              />
+              Temperatura del mar
+            </label>
 
-        <label className="overlay-toggle">
-          <input
-            type="checkbox"
-            checked={showWave}
-            onChange={(event) => setShowWave(event.target.checked)}
-          />
-          Oleaje animado
-        </label>
+            <label className="overlay-toggle">
+              <input
+                type="checkbox"
+                checked={showWave}
+                onChange={(event) => setShowWave(event.target.checked)}
+              />
+              Oleaje animado
+            </label>
 
-        <label className="overlay-toggle">
-          <input
-            type="checkbox"
-            checked={showFlow}
-            onChange={(event) => setShowFlow(event.target.checked)}
-          />
-          Corrientes (estelas)
-        </label>
+            <label className="overlay-toggle">
+              <input
+                type="checkbox"
+                checked={showFlow}
+                onChange={(event) => setShowFlow(event.target.checked)}
+              />
+              Corrientes (estelas)
+            </label>
 
-        <label className="overlay-toggle">
-          <input
-            type="checkbox"
-            checked={showStations}
-            onChange={(event) => setShowStations(event.target.checked)}
-          />
-          Estaciones y alertas
-        </label>
+            <label className="overlay-toggle">
+              <input
+                type="checkbox"
+                checked={showStations}
+                onChange={(event) => setShowStations(event.target.checked)}
+              />
+              Estaciones y alertas
+            </label>
 
-        <div className="overlay-ranges">
-          <div>
-            <strong>Temperatura (C)</strong>
-            <small>
-              Baja &lt;= {TEMPERATURE_THRESHOLDS.lowWarning} | Alta &gt;= {TEMPERATURE_THRESHOLDS.highWarning} | Anomala &gt;= {TEMPERATURE_THRESHOLDS.highDanger}
-            </small>
+            <div className="overlay-ranges">
+              <div>
+                <strong>Temperatura (C)</strong>
+                <small>
+                  Baja &lt;= {TEMPERATURE_THRESHOLDS.lowWarning} | Alta &gt;= {TEMPERATURE_THRESHOLDS.highWarning} | Anomala &gt;= {TEMPERATURE_THRESHOLDS.highDanger}
+                </small>
+              </div>
+              <div>
+                <strong>Oleaje (m)</strong>
+                <small>
+                  Vig. &gt;= {WAVE_THRESHOLDS.watch} | Alerta &gt;= {WAVE_THRESHOLDS.warning} | Peligro &gt;= {WAVE_THRESHOLDS.danger}
+                </small>
+              </div>
+            </div>
           </div>
-          <div>
-            <strong>Oleaje (m)</strong>
-            <small>
-              Vig. &gt;= {WAVE_THRESHOLDS.watch} | Alerta &gt;= {WAVE_THRESHOLDS.warning} | Peligro &gt;= {WAVE_THRESHOLDS.danger}
-            </small>
-          </div>
-        </div>
+        )}
       </section>
     </div>
   );
