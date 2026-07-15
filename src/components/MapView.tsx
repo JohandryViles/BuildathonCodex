@@ -12,10 +12,24 @@ const TEMP_FIELD_LAYER_ID = "global-temp-layer";
 const WAVE_FIELD_LAYER_ID = "global-wave-layer";
 const LAND_MASK_LAYER_ID = "global-land-mask-layer";
 const COAST_SURF_LAYER_ID = "coast-surf-layer";
+const AI_PREVENTION_LAYER_ID = "ai-prevention-points-layer";
 const LAYER_ID = "marine-alerts-layer";
 const USER_LOCATION_RADIUS_KM = 100;
 const GRID_STEP_DEGREES = 2;
 const ALERT_BASE_RADIUS_EXPRESSION: maplibregl.ExpressionSpecification = [
+  "*",
+  [
+    "interpolate",
+    ["linear"],
+    ["zoom"],
+    3,
+    1.75,
+    5,
+    1.2,
+    8,
+    0.92,
+  ],
+  [
   "interpolate",
   ["linear"],
   ["get", "waveHeightM"],
@@ -25,6 +39,7 @@ const ALERT_BASE_RADIUS_EXPRESSION: maplibregl.ExpressionSpecification = [
   8,
   5,
   10,
+  ],
 ];
 
 interface MapViewProps {
@@ -33,6 +48,7 @@ interface MapViewProps {
   filter: AlertFilter;
   onPointSelect: (pointId: string) => void;
   fieldTimeMs: number;
+  preventionPointIds: string[];
 }
 
 function getBoundsFromRadius(
@@ -81,17 +97,11 @@ function getFlowVector(
     0.35 * Math.cos((lng - lat) * 0.09 - timeSec * 0.06);
 
   if (mode === "counter2") {
-    return [
-      -baseU * 0.95 + 0.35 * Math.cos((lng - lat) * 0.07 + timeSec * 0.09),
-      -baseV * 0.85 + 0.35 * Math.sin((lng + lat) * 0.06 - timeSec * 0.08),
-    ];
+    return [-baseU * 0.9, -baseV * 0.9];
   }
 
   if (mode === "counter3") {
-    return [
-      baseV * 0.9 + 0.5 * Math.sin(lat * 0.22 - timeSec * 0.06),
-      -baseU * 0.9 + 0.5 * Math.cos(lng * 0.2 + timeSec * 0.05),
-    ];
+    return [baseV * 0.86, -baseU * 0.86];
   }
 
   return [baseU, baseV];
@@ -116,6 +126,7 @@ function getMarineFieldCell(
   west: number,
   south: number,
   timestampMs: number,
+  observations: MarineAlert[],
 ): MarineFieldFeature {
   const east = west + GRID_STEP_DEGREES;
   const north = south + GRID_STEP_DEGREES;
@@ -132,8 +143,40 @@ function getMarineFieldCell(
   const localHour = ((utcHour + lng / 15) % 24 + 24) % 24;
   const diurnal = Math.cos(((localHour - 15) / 24) * Math.PI * 2);
 
+  const simulatedTemperature = 14 + equatorHeat * 14 + diurnal * 1.1;
+  let weightedTemperature = 0;
+  let totalWeight = 0;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+  const longitudeScale = Math.max(0.25, Math.cos((lat * Math.PI) / 180));
+
+  for (const observation of observations) {
+    if (!Number.isFinite(observation.seaTemperatureC)) {
+      continue;
+    }
+
+    const rawLongitudeDelta = Math.abs(lng - observation.coordinates[0]);
+    const longitudeDelta =
+      Math.min(rawLongitudeDelta, 360 - rawLongitudeDelta) * longitudeScale;
+    const latitudeDelta = lat - observation.coordinates[1];
+    const distance = Math.hypot(longitudeDelta, latitudeDelta);
+    const weight = Math.exp(-(distance * distance) / (2 * 26 * 26));
+
+    nearestDistance = Math.min(nearestDistance, distance);
+    weightedTemperature += observation.seaTemperatureC * weight;
+    totalWeight += weight;
+  }
+
+  const observedTemperature =
+    totalWeight > 0.001 ? weightedTemperature / totalWeight : null;
+  const observationInfluence =
+    observedTemperature === null
+      ? 0
+      : 0.9 * Math.exp(-(nearestDistance * nearestDistance) / (2 * 32 * 32));
   const seaTemperatureC = clamp(
-    14 + equatorHeat * 14 + diurnal * 3.2,
+    observedTemperature === null
+      ? simulatedTemperature
+      : simulatedTemperature * (1 - observationInfluence) +
+          observedTemperature * observationInfluence,
     10,
     34,
   );
@@ -169,12 +212,13 @@ function getMarineFieldCell(
 
 function createGlobalMarineField(
   timestampMs: number,
+  observations: MarineAlert[],
 ): FeatureCollection<Polygon, MarineFieldProperties> {
   const features: MarineFieldFeature[] = [];
 
   for (let lat = -72; lat < 72; lat += GRID_STEP_DEGREES) {
     for (let lng = -180; lng < 180; lng += GRID_STEP_DEGREES) {
-      features.push(getMarineFieldCell(lng, lat, timestampMs));
+      features.push(getMarineFieldCell(lng, lat, timestampMs, observations));
     }
   }
 
@@ -184,7 +228,10 @@ function createGlobalMarineField(
   };
 }
 
-function toGeoJson(alerts: MarineAlert[]): FeatureCollection<Point> {
+function toGeoJson(
+  alerts: MarineAlert[],
+  preventionPointIds: ReadonlySet<string> = new Set(),
+): FeatureCollection<Point> {
   return {
     type: "FeatureCollection",
     features: alerts.map((alert) => ({
@@ -201,6 +248,7 @@ function toGeoJson(alerts: MarineAlert[]): FeatureCollection<Point> {
         seaTemperatureC: alert.seaTemperatureC,
         waveHeightM: alert.waveHeightM,
         updatedAt: alert.updatedAt,
+        isAiPrevention: preventionPointIds.has(alert.pointId),
       },
     })),
   };
@@ -212,6 +260,7 @@ export function MapView({
   filter,
   onPointSelect,
   fieldTimeMs,
+  preventionPointIds,
 }: MapViewProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<Map | null>(null);
@@ -233,7 +282,10 @@ export function MapView({
 
   onPointSelectRef.current = onPointSelect;
 
-  const geoJsonData = useMemo(() => toGeoJson(alerts), [alerts]);
+  const geoJsonData = useMemo(
+    () => toGeoJson(alerts, new Set(preventionPointIds)),
+    [alerts, preventionPointIds],
+  );
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) {
@@ -279,7 +331,7 @@ export function MapView({
 
       map.addSource(GLOBAL_FIELD_SOURCE_ID, {
         type: "geojson",
-        data: createGlobalMarineField(fieldTimeRef.current),
+        data: createGlobalMarineField(fieldTimeRef.current, alertsRef.current),
       });
 
       map.addLayer(
@@ -386,6 +438,22 @@ export function MapView({
       });
 
       map.addLayer({
+        id: AI_PREVENTION_LAYER_ID,
+        type: "circle",
+        source: SOURCE_ID,
+        filter: ["==", ["get", "isAiPrevention"], true],
+        paint: {
+          "circle-color": "#c084fc",
+          "circle-radius": ["+", ALERT_BASE_RADIUS_EXPRESSION, 8],
+          "circle-opacity": 0.28,
+          "circle-stroke-width": 2,
+          "circle-stroke-color": "#f3e8ff",
+          "circle-stroke-opacity": 0.7,
+          "circle-blur": 0.25,
+        },
+      });
+
+      map.addLayer({
         id: LAYER_ID,
         type: "circle",
         source: SOURCE_ID,
@@ -402,9 +470,29 @@ export function MapView({
             "#10b981",
           ],
           "circle-radius": ALERT_BASE_RADIUS_EXPRESSION,
-          "circle-stroke-width": 2,
+          "circle-stroke-width": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            3,
+            2.8,
+            6,
+            2.1,
+            8,
+            1.8,
+          ],
           "circle-stroke-color": "#0f172a",
-          "circle-opacity": 0.9,
+          "circle-opacity": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            3,
+            0.98,
+            6,
+            0.93,
+            8,
+            0.88,
+          ],
         },
       });
 
@@ -421,6 +509,19 @@ export function MapView({
             1 + coastPulse * 3,
             1.8,
           ]);
+        }
+        if (map.getLayer(AI_PREVENTION_LAYER_ID)) {
+          const preventionCycle = (time % 2400) / 2400;
+          map.setPaintProperty(AI_PREVENTION_LAYER_ID, "circle-radius", [
+            "+",
+            ALERT_BASE_RADIUS_EXPRESSION,
+            6 + preventionCycle * 12,
+          ]);
+          map.setPaintProperty(
+            AI_PREVENTION_LAYER_ID,
+            "circle-opacity",
+            0.1 + (1 - preventionCycle) * 0.32,
+          );
         }
 
         waveAnimationFrameRef.current = requestAnimationFrame(animateWave);
@@ -579,8 +680,8 @@ export function MapView({
       return;
     }
 
-    source.setData(createGlobalMarineField(fieldTimeMs));
-  }, [mapReady, fieldTimeMs]);
+    source.setData(createGlobalMarineField(fieldTimeMs, alerts));
+  }, [mapReady, fieldTimeMs, alerts]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -622,9 +723,19 @@ export function MapView({
     setLayerVisibility(map, TEMP_FIELD_LAYER_ID, showTemperature);
     setLayerVisibility(map, WAVE_FIELD_LAYER_ID, showWave);
     setLayerVisibility(map, COAST_SURF_LAYER_ID, showWave);
+    setLayerVisibility(map, AI_PREVENTION_LAYER_ID, showStations);
     setLayerVisibility(map, LAYER_ID, showStations);
     setLayerVisibility(map, LAND_MASK_LAYER_ID, showTemperature || showWave);
   }, [showTemperature, showWave, showStations]);
+
+  useEffect(() => {
+    if (
+      selectedPointId &&
+      preventionPointIds.includes(selectedPointId)
+    ) {
+      setShowStations(true);
+    }
+  }, [selectedPointId, preventionPointIds]);
 
   useEffect(() => {
     const map = mapRef.current;
